@@ -1,0 +1,251 @@
+import React, { useState } from 'react';
+import { 
+  TrendingUp, 
+  BarChart3, 
+  Calendar, 
+  DollarSign, 
+  Percent, 
+  Users, 
+  ShoppingBag, 
+  Download, 
+  ArrowUpRight, 
+  Layers,
+  Sparkles,
+  PieChart as PieIcon
+} from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  ComposedChart, 
+  Bar, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  Legend, 
+  CartesianGrid, 
+  AreaChart, 
+  Area 
+} from 'recharts';
+import { MOCK_ANNUAL_TRENDS, MOCK_DAILY_STATS } from '../data/mockPharmacyData';
+import { formatCurrency, formatPercent, exportToCsv } from '../utils/formatters';
+
+export const AnnualTrendsSalesView: React.FC = () => {
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const [activeMetric, setActiveMetric] = useState<'ca' | 'marge' | 'ebe'>('ca');
+
+  const totalCa2025 = MOCK_ANNUAL_TRENDS.reduce((sum, item) => sum + item.ca2025, 0);
+  const totalCa2026 = MOCK_ANNUAL_TRENDS.reduce((sum, item) => sum + item.ca2026, 0);
+  const growthRate = ((totalCa2026 - totalCa2025) / totalCa2025) * 100;
+  const totalMarge2026 = MOCK_ANNUAL_TRENDS.reduce((sum, item) => sum + item.marge2026, 0);
+  const totalEbe2026 = MOCK_ANNUAL_TRENDS.reduce((sum, item) => sum + item.ebe, 0);
+
+  const handleExportCsv = () => {
+    const data = MOCK_ANNUAL_TRENDS.map(t => ({
+      'Mois': t.month,
+      'CA 2025 HT (€)': t.ca2025,
+      'CA 2026 HT (€)': t.ca2026,
+      'Croissance (%)': (((t.ca2026 - t.ca2025) / t.ca2025) * 100).toFixed(1),
+      'Marge Brute 2026 (€)': t.marge2026,
+      'Charges 2026 (€)': t.charges,
+      'EBE / EBITDA Officine (€)': t.ebe
+    }));
+    exportToCsv(data, 'tendances_ventes_annuelles_pharmacie');
+  };
+
+  return (
+    <div className="space-y-6 pb-12">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+              <TrendingUp className="w-5 h-5" />
+            </span>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Statistiques de Ventes & Tendances Annuelles
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Analyse comparative N vs N-1, décomposition de la marge officinale, saisonnalité et prévisions d'Excédent Brut d'Exploitation (EBE).
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export Tendances CSV</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Aggregate KPI Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            CA Global 2026 HT (Cumul)
+          </div>
+          <div className="text-xl font-bold text-slate-900">
+            {formatCurrency(totalCa2026)}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-emerald-600 font-semibold mt-1">
+            <ArrowUpRight className="w-4 h-4" />
+            <span>+{growthRate.toFixed(1)}% vs 2025 ({formatCurrency(totalCa2025)})</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Marge Brute Cumulée HT
+          </div>
+          <div className="text-xl font-bold text-emerald-700">
+            {formatCurrency(totalMarge2026)}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            Taux de marge moyen : {((totalMarge2026 / totalCa2026) * 100).toFixed(1)}%
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            EBE Officinal (EBITDA)
+          </div>
+          <div className="text-xl font-bold text-indigo-700">
+            {formatCurrency(totalEbe2026)}
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            Rentabilité d'exploitation : {((totalEbe2026 / totalCa2026) * 100).toFixed(1)}%
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+            Indice de Fréquentation
+          </div>
+          <div className="text-xl font-bold text-slate-900">
+            272 clients / jour
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            Panier moyen : 24,92 € TTC
+          </div>
+        </div>
+      </div>
+
+      {/* Main Annual Trend Chart (N vs N-1) */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Évolution Mensuelle Comparée : Année 2026 vs 2025
+            </h2>
+            <p className="text-xs text-slate-500">
+              Progression mensuelle du Chiffre d'Affaires HT, de la Marge Brute et de l'EBE.
+            </p>
+          </div>
+
+          {/* Metric Selector Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveMetric('ca')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                activeMetric === 'ca' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Chiffre d'Affaires HT
+            </button>
+            <button
+              onClick={() => setActiveMetric('marge')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                activeMetric === 'marge' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Marge Brute HT
+            </button>
+            <button
+              onClick={() => setActiveMetric('ebe')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                activeMetric === 'ebe' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              EBE / EBITDA
+            </button>
+          </div>
+        </div>
+
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={MOCK_ANNUAL_TRENDS} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+              <YAxis stroke="#64748b" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k€`} />
+              <Tooltip 
+                formatter={(val: any, name: any) => [formatCurrency(Number(val)), name]}
+                contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', fontSize: '12px' }}
+              />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+
+              {activeMetric === 'ca' && (
+                <>
+                  <Bar dataKey="ca2025" name="CA 2025 N-1 (€)" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="ca2026" name="CA 2026 N (€)" fill="#059669" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="marge2026" name="Marge Brute 2026 (€)" stroke="#3b82f6" strokeWidth={3} />
+                </>
+              )}
+
+              {activeMetric === 'marge' && (
+                <>
+                  <Bar dataKey="marge2026" name="Marge Brute 2026 (€)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="charges" name="Charges Externes & Salaires (€)" stroke="#ef4444" strokeWidth={2} />
+                </>
+              )}
+
+              {activeMetric === 'ebe' && (
+                <>
+                  <Bar dataKey="ebe" name="EBE / Excédent Brut d'Exploitation (€)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="marge2026" name="Marge Brute 2026 (€)" stroke="#10b981" strokeWidth={2} />
+                </>
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Seasonality & Pathology Insights Box */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-emerald-800 mb-1 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            Saisonnalité Hivernale (Nov - Fév)
+          </div>
+          <p className="text-xs text-slate-600 mt-1">
+            Pic de dispensation d'antibiotiques, antitussifs, tests antigéniques et vaccins grippe. Prévoir réassort anticipé en octobre.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-800 mb-1 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            Saisonnalité Printanière (Mar - Mai)
+          </div>
+          <p className="text-xs text-slate-600 mt-1">
+            Forte hausse des antihistaminiques (allergies pollens), collyres et compléments détox. Marge brute moyenne : 36.2%.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+          <div className="text-xs font-bold uppercase tracking-wider text-sky-800 mb-1 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+            Saisonnalité Estivale (Juin - Août)
+          </div>
+          <p className="text-xs text-slate-600 mt-1">
+            Explosion des ventes de crèmes solaires, anti-moustiques et trousses de secours vacances. Panier moyen le plus élevé de l'année.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  );
+};

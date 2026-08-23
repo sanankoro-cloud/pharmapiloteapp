@@ -1,0 +1,1344 @@
+import { 
+  ProductStock, 
+  SupplierOrder, 
+  ExpenseItem, 
+  BankTransaction, 
+  CompetitorPharmacy, 
+  CompetitorPriceComparison, 
+  DailySaleStat, 
+  MonthlyAccountingReport, 
+  PushNotificationAlert, 
+  PharmacyFinancialSummary 
+} from '../types/pharmacy';
+
+export const INITIAL_SUMMARY: PharmacyFinancialSummary = {
+  todayCaTtc: 6480.50,
+  todayCaTarget: 6200.00,
+  todayMarginPct: 34.2,
+  monthCaTtc: 156485.45,
+  monthCaTarget: 150000.00,
+  monthGrowthN1: 5.2,
+  currentBankBalance: 16708.87, // Relevé CA n°007 au 31/07/2026
+  accountingBalance: 16708.87,
+  pendingCustomerReceivables: 14250.00, // Retours NOEMIE et DRE en attente
+  pendingSupplierPayables: 32400.00,   // Factures fournisseurs à échoir
+  totalStockValuePump: 84320.00,       // Stock valorisé HT PUMP
+  totalStockValuePublic: 138400.00,    // Stock valeur de vente TTC
+  criticalExpiriesCount: 3,
+  pendingBankReconciliationsCount: 0,
+  activeBudgetAlertsCount: 1
+};
+
+export const MOCK_PRODUCTS: ProductStock[] = [
+  {
+    id: 'prod-vyndaqel',
+    cip: '3400930202074',
+    name: 'VYNDAQEL 61MG B30 Capsules molles',
+    dci: 'Tafamidis',
+    category: 'medicament_remboursable',
+    laboratory: 'Pfizer (S.A.S)',
+    stockQty: 1,
+    minThreshold: 1,
+    maxThreshold: 2,
+    pump: 6255.87,
+    publicPriceTtc: 6387.24,
+    tva: 2.1,
+    location: 'Coffre Haute Valeur / Tiroir Sécurisé',
+    lotNumber: 'NM4336',
+    expiryDate: '2027-10-31',
+    daysUntilExpiry: 434,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-regenerate',
+    cip: '8710447492130',
+    name: 'REGENERATE BDB EXPERT 50ML Dentifrice Expert',
+    category: 'parapharmacie',
+    laboratory: 'U.Labs (Movianto / CSP)',
+    stockQty: 6,
+    minThreshold: 3,
+    maxThreshold: 12,
+    pump: 5.70,
+    publicPriceTtc: 9.90,
+    tva: 20.0,
+    location: 'Rayon Hygiène Bucco-Dentaire',
+    lotNumber: 'LOT-64999145',
+    expiryDate: '2028-04-30',
+    daysUntilExpiry: 615,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-fluo-75',
+    cip: '3400935008497',
+    name: 'FLUO BI-250 PATE 75ML Dentifrice fluoré',
+    category: 'medicament_otc',
+    laboratory: 'U.Labs (Movianto / CSP)',
+    stockQty: 10,
+    minThreshold: 4,
+    maxThreshold: 20,
+    pump: 3.99,
+    publicPriceTtc: 6.50,
+    tva: 10.0,
+    location: 'Rayon Hygiène & Soins Bucco-Dentaires',
+    lotNumber: 'LOT-69967839',
+    expiryDate: '2027-09-30',
+    daysUntilExpiry: 403,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-fluo-2x75',
+    cip: '3400936273955',
+    name: 'FLUO BI-250 PATE 2X75ML Lot Bi-Tube',
+    category: 'medicament_otc',
+    laboratory: 'U.Labs (Movianto / CSP)',
+    stockQty: 6,
+    minThreshold: 3,
+    maxThreshold: 15,
+    pump: 6.91,
+    publicPriceTtc: 10.90,
+    tva: 10.0,
+    location: 'Rayon Hygiène & Soins Bucco-Dentaires',
+    lotNumber: 'LOT-69967835',
+    expiryDate: '2027-11-30',
+    daysUntilExpiry: 464,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-fluo-125',
+    cip: '3400935008619',
+    name: 'FLUO BI-250 PATE 125ML Format Familial',
+    category: 'medicament_otc',
+    laboratory: 'U.Labs (Movianto / CSP)',
+    stockQty: 12,
+    minThreshold: 5,
+    maxThreshold: 24,
+    pump: 5.10,
+    publicPriceTtc: 8.50,
+    tva: 10.0,
+    location: 'Rayon Hygiène & Soins Bucco-Dentaires',
+    lotNumber: 'LOT-69967830',
+    expiryDate: '2028-01-31',
+    daysUntilExpiry: 526,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-1',
+    cip: '3400936000018',
+    name: 'Doliprane 1000mg Gélules (Boîte de 8)',
+    dci: 'Paracétamol',
+    category: 'medicament_remboursable',
+    laboratory: 'Opella Healthcare (Sanofi)',
+    stockQty: 184,
+    minThreshold: 40,
+    maxThreshold: 250,
+    pump: 1.12,
+    publicPriceTtc: 2.18,
+    tva: 2.1,
+    location: 'Tiroir A1 - Casier 4',
+    lotNumber: 'LOT-DP-8842',
+    expiryDate: '2027-04-30',
+    daysUntilExpiry: 615,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-2',
+    cip: '3400937890124',
+    name: 'Amoxicilline Biogaran 1g Comprimés (Boîte de 14)',
+    dci: 'Amoxicilline trihydratée',
+    category: 'medicament_remboursable',
+    laboratory: 'Biogaran',
+    stockQty: 8,
+    minThreshold: 25,
+    maxThreshold: 120,
+    pump: 1.64,
+    publicPriceTtc: 2.89,
+    tva: 2.1,
+    location: 'Tiroir B2 - Antibiotiques',
+    lotNumber: 'LOT-AMX-204',
+    expiryDate: '2026-09-15',
+    daysUntilExpiry: 23,
+    status: 'near_expiry'
+  },
+  {
+    id: 'prod-3',
+    cip: '3400938210943',
+    name: 'Ventoline 100µg/dose Suspension Inhalation',
+    dci: 'Salbutamol',
+    category: 'medicament_remboursable',
+    laboratory: 'GSK GlaxoSmithKline',
+    stockQty: 42,
+    minThreshold: 15,
+    maxThreshold: 60,
+    pump: 2.94,
+    publicPriceTtc: 4.88,
+    tva: 2.1,
+    location: 'Tiroir V1 - Pneumologie',
+    lotNumber: 'LOT-VT-771',
+    expiryDate: '2027-11-30',
+    daysUntilExpiry: 830,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-4',
+    cip: '3400930018274',
+    name: 'Vaccin Grippal Trivalent VaxigripTetra',
+    dci: 'Vaccin grippe inactivé',
+    category: 'medicament_remboursable',
+    laboratory: 'Sanofi Pasteur',
+    stockQty: 5,
+    minThreshold: 10,
+    maxThreshold: 50,
+    pump: 7.80,
+    publicPriceTtc: 11.95,
+    tva: 2.1,
+    location: 'Frigo 2-8°C (Étage 2)',
+    lotNumber: 'LOT-VX-449',
+    expiryDate: '2026-09-05',
+    daysUntilExpiry: 13,
+    status: 'near_expiry',
+    isRefrigerated: true
+  },
+  {
+    id: 'prod-5',
+    cip: '3400931298401',
+    name: 'NurofenFlash 400mg Comprimés (Boîte de 12)',
+    dci: 'Ibuprofène',
+    category: 'medicament_otc',
+    laboratory: 'Reckitt Benckiser',
+    stockQty: 56,
+    minThreshold: 20,
+    maxThreshold: 80,
+    pump: 3.10,
+    publicPriceTtc: 5.90,
+    tva: 10.0,
+    location: 'Comptoir OTC - Libre Accès',
+    lotNumber: 'LOT-NR-510',
+    expiryDate: '2027-08-31',
+    daysUntilExpiry: 739,
+    status: 'optimal'
+  },
+  {
+    id: 'prod-6',
+    cip: '3700763600021',
+    name: 'Lait Bébé Gallia Calisma 1er Âge (800g)',
+    category: 'nutrition_bebe',
+    laboratory: 'Laboratoire Gallia (Danone)',
+    stockQty: 18,
+    minThreshold: 10,
+    maxThreshold: 40,
+    pump: 14.80,
+    publicPriceTtc: 19.90,
+    tva: 5.5,
+    location: 'Rayon Bébé / Pédiatrie',
+    lotNumber: 'LOT-GAL-1092',
+    expiryDate: '2026-10-18',
+    daysUntilExpiry: 56,
+    status: 'near_expiry'
+  },
+  {
+    id: 'prod-7',
+    cip: '3401399372351',
+    name: 'Bioderma Créaline H2O Eau Micellaire 500ml',
+    category: 'parapharmacie',
+    laboratory: 'NAOS Bioderma',
+    stockQty: 34,
+    minThreshold: 12,
+    maxThreshold: 50,
+    pump: 7.20,
+    publicPriceTtc: 12.50,
+    tva: 20.0,
+    location: 'Rayon Dermo-Cosmétique A',
+    lotNumber: 'LOT-BIO-901',
+    expiryDate: '2028-02-28',
+    daysUntilExpiry: 1285,
+    status: 'optimal'
+  }
+];
+
+export const MOCK_SUPPLIERS_ORDERS: SupplierOrder[] = [
+  {
+    id: 'ord-pfizer-9702086525',
+    orderNumber: 'CALL-20260522093317500989',
+    supplierName: 'Pfizer (S.A.S)',
+    supplierType: 'laboratoire_direct',
+    orderDate: '2026-05-22',
+    deliveryDate: '2026-05-26 (BL 8121266777)',
+    status: 'receptionnee',
+    itemsCount: 1,
+    totalHt: 6255.87,
+    totalTtc: 6387.24,
+    discountPercentage: 0.95,
+    commercialBonus: 60.00,
+    invoiceNumber: '9702086525',
+    paymentDueDate: '2026-07-27',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-csp-k660502338',
+    orderNumber: '45166300159771',
+    supplierName: 'CSP Movianto (Laboratoires U.LABS)',
+    supplierType: 'laboratoire_direct',
+    orderDate: '2026-05-20',
+    deliveryDate: '2026-05-28 (BL 64347630)',
+    status: 'receptionnee',
+    itemsCount: 34,
+    totalHt: 176.68,
+    totalTtc: 197.76,
+    discountPercentage: 33.0,
+    commercialBonus: 87.03,
+    invoiceNumber: 'K660502338',
+    paymentDueDate: '2026-07-27',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-welcoop-190182695',
+    orderNumber: 'CMD-WEL-2026-551',
+    supplierName: 'Welcoop Logistique',
+    supplierType: 'grossiste',
+    orderDate: '2026-05-25',
+    deliveryDate: '2026-05-28',
+    status: 'receptionnee',
+    itemsCount: 48,
+    totalHt: 587.83,
+    totalTtc: 646.61,
+    discountPercentage: 2.5,
+    commercialBonus: 15.00,
+    invoiceNumber: '190182695',
+    paymentDueDate: '2026-07-27',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-smeurope-15347182',
+    orderNumber: 'CMD-SME-2026-01',
+    supplierName: 'S.A.S. SM Europe',
+    supplierType: 'prestataire',
+    orderDate: '2026-05-20',
+    deliveryDate: '2026-05-26',
+    status: 'receptionnee',
+    itemsCount: 5,
+    totalHt: 50.00,
+    totalTtc: 60.00,
+    discountPercentage: 0.0,
+    commercialBonus: 0.00,
+    invoiceNumber: 'FAC-SME-01',
+    paymentDueDate: '2026-07-26',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-cerp-bretagne-2407',
+    orderNumber: 'CMD-CERP-2026-0722',
+    supplierName: 'CERP Bretagne Atlantique',
+    supplierType: 'grossiste',
+    orderDate: '2026-07-20',
+    deliveryDate: '2026-07-21 (Livraison bi-quotidienne)',
+    status: 'receptionnee',
+    itemsCount: 420,
+    totalHt: 15552.86,
+    totalTtc: 17108.15,
+    discountPercentage: 2.5,
+    commercialBonus: 388.00,
+    invoiceNumber: 'FAC-CERP-7225202',
+    paymentDueDate: '2026-07-24',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-cerp-bretagne-1007',
+    orderNumber: 'CMD-CERP-2026-0708',
+    supplierName: 'CERP Bretagne Atlantique',
+    supplierType: 'grossiste',
+    orderDate: '2026-07-06',
+    deliveryDate: '2026-07-07',
+    status: 'receptionnee',
+    itemsCount: 380,
+    totalHt: 14008.29,
+    totalTtc: 15409.12,
+    discountPercentage: 2.5,
+    commercialBonus: 350.00,
+    invoiceNumber: 'FAC-CERP-7225202-02',
+    paymentDueDate: '2026-07-10',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-phoenix-ocp-1507',
+    orderNumber: 'CMD-PHX-2026-0712',
+    supplierName: 'Phoenix OCP Répartition',
+    supplierType: 'grossiste',
+    orderDate: '2026-07-11',
+    deliveryDate: '2026-07-12',
+    status: 'receptionnee',
+    itemsCount: 165,
+    totalHt: 5509.60,
+    totalTtc: 6060.56,
+    discountPercentage: 2.0,
+    commercialBonus: 110.00,
+    invoiceNumber: 'FAC-OCP-6071000992',
+    paymentDueDate: '2026-07-15',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-abbott-0607',
+    orderNumber: 'CMD-ABB-2026-0628',
+    supplierName: 'Abbott France SAS (Capteurs FreeStyle Libre)',
+    supplierType: 'laboratoire_direct',
+    orderDate: '2026-06-28',
+    deliveryDate: '2026-07-01',
+    status: 'receptionnee',
+    itemsCount: 80,
+    totalHt: 3330.27,
+    totalTtc: 3663.30,
+    discountPercentage: 5.0,
+    commercialBonus: 166.00,
+    invoiceNumber: 'FAC-ABB-9900249982',
+    paymentDueDate: '2026-07-06',
+    paymentStatus: 'payee'
+  },
+  {
+    id: 'ord-opella-2007',
+    orderNumber: 'CMD-OPL-2026-0630',
+    supplierName: 'Opella Healthcare (Sanofi)',
+    supplierType: 'laboratoire_direct',
+    orderDate: '2026-06-30',
+    deliveryDate: '2026-07-03',
+    status: 'receptionnee',
+    itemsCount: 150,
+    totalHt: 1833.97,
+    totalTtc: 2017.37,
+    discountPercentage: 10.0,
+    commercialBonus: 183.00,
+    invoiceNumber: 'FAC-OPL-15334016',
+    paymentDueDate: '2026-07-20',
+    paymentStatus: 'payee'
+  }
+];
+
+export const MOCK_EXPENSES: ExpenseItem[] = [
+  {
+    id: 'exp-salaires',
+    category: 'salaires',
+    label: 'Salaires Nets Équipe Officine (M. Soumma Toure, J. Vannier, O. Briziou, N. Issa)',
+    monthlyBudget: 8000,
+    actualAmount: 8010.50,
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-27',
+    nextDueDate: '2026-08-27',
+    paymentMethod: 'virement',
+    supplier: 'Salariés SELARL Pharmacie de l\'Épau',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-urssaf',
+    category: 'salaires',
+    label: 'Charges Sociales DSN URSSAF Pays de la Loire',
+    monthlyBudget: 4900,
+    actualAmount: 4916.00, // 3880 € + 1036 €
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-16',
+    nextDueDate: '2026-08-16',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'URSSAF Pays de la Loire',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-cavp',
+    category: 'salaires',
+    label: 'Cotisations Retraite Titulaire CAVP (Caisse Vieillesse des Pharmaciens)',
+    monthlyBudget: 2076,
+    actualAmount: 2076.00,
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-27',
+    nextDueDate: '2026-08-27',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'CAVP Dr Camara N\'Fafode',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-klesia',
+    category: 'salaires',
+    label: 'Prévoyance & Retraite Complémentaire Salariés GIE Klesia Cotis',
+    monthlyBudget: 2000,
+    actualAmount: 2066.14, // 952.60 + 668.03 + 445.51
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-30',
+    nextDueDate: '2026-08-30',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Klesia Cotisations ADP',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-siemens-robot',
+    category: 'robot_leasing',
+    label: 'Location Financière Automate Officine Siemens Lease Services',
+    monthlyBudget: 2410,
+    actualAmount: 2409.22,
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-01',
+    nextDueDate: '2026-08-01',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Siemens Lease Services SAS',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-grenke',
+    category: 'robot_leasing',
+    label: 'Location Matériel Informatique & Équipements Grenke Location',
+    monthlyBudget: 1624,
+    actualAmount: 1624.00, // 943.60 + 680.40
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-01',
+    nextDueDate: '2026-08-01',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Grenke Location SAS',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-cegelease',
+    category: 'robot_leasing',
+    label: 'Location TPE & Systèmes d\'encaissement Cegelease',
+    monthlyBudget: 420,
+    actualAmount: 416.40,
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-01',
+    nextDueDate: '2026-08-01',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Cegelease',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-equasens',
+    category: 'logiciel_lgo',
+    label: 'Abonnement LGO Pharmagest / Logiciel Santé Equasens',
+    monthlyBudget: 890,
+    actualAmount: 891.68, // 379.52 + 512.16
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-31',
+    nextDueDate: '2026-08-31',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Equasens Group',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-edf',
+    category: 'energie_fluides',
+    label: 'Électricité Épau (Frigos 2-8°C, Climatisation, Éclairage)',
+    monthlyBudget: 400,
+    actualAmount: 417.78,
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-20',
+    nextDueDate: '2026-08-20',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'EDF Entreprises',
+    status: 'alerte_depassement'
+  },
+  {
+    id: 'exp-expert-comptable',
+    category: 'honoraires_comptables',
+    label: 'Honoraires Expertise Comptable LLA Experts & Conseil Juridique KPMG',
+    monthlyBudget: 2800,
+    actualAmount: 2788.49, // 1488.00 + 1300.49
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-30',
+    nextDueDate: '2026-08-30',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'LLA Experts Comptables / KPMG Avocats',
+    status: 'a_jour'
+  },
+  {
+    id: 'exp-emprunts-ca',
+    category: 'autres',
+    label: 'Échéances Prêts Professionnels Crédit Agricole Anjou Maine',
+    monthlyBudget: 8450,
+    actualAmount: 8447.38, // 6318.94 (Prêt 1) + 1083.10 (Prêt 2) + 991.74 (Prêt 3) + 421.15 (Prêt 4) + 32.45
+    frequency: 'mensuel',
+    lastPaymentDate: '2026-07-05',
+    nextDueDate: '2026-08-05',
+    paymentMethod: 'prelevement_sepa',
+    supplier: 'Crédit Agricole de l\'Anjou et du Maine',
+    status: 'a_jour'
+  }
+];
+
+export const MOCK_BANK_TRANSACTIONS: BankTransaction[] = [
+  // 31/07/2026
+  {
+    id: 'tx-0731-1',
+    date: '2026-07-31',
+    label: 'VIR CPAM LE MANS 00000072200618621069202607300000007220061862106920260730',
+    type: 'credit',
+    amount: 6632.71,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0730',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-2',
+    date: '2026-07-31',
+    label: 'VERSEMENT LE MANS REPUBL AD 31/07/26 21H04 ESPECES',
+    type: 'credit',
+    amount: 1820.00,
+    category: 'especes',
+    status: 'rapproche',
+    matchedInvoice: 'BORD-ESP-20260731',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-3',
+    date: '2026-07-31',
+    label: 'VIR BIOGARAN 20001226619006920788 RFA GENERIQUES',
+    type: 'credit',
+    amount: 1019.76,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'RFA-BIOGARAN-2026-T2',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-4',
+    date: '2026-07-31',
+    label: 'REMISE CARTE 3088054 001 732507 31/07 TPE PHARMACIE',
+    type: 'credit',
+    amount: 308.70,
+    category: 'remise_cb',
+    status: 'rapproche',
+    matchedInvoice: 'CB-TPE-3088054-0731',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-5',
+    date: '2026-07-31',
+    label: 'PRLV EQUASENS GROUP F051581413A ABONNEMENT LOGICIEL',
+    type: 'debit',
+    amount: 512.16,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-EQUASENS-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-6',
+    date: '2026-07-31',
+    label: 'EFFET 15362500 PAYE JANSSEN CILAG SAS',
+    type: 'debit',
+    amount: 580.48,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'LCR-JANSSEN-15362500',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-7',
+    date: '2026-07-31',
+    label: 'EFFET 15362498 PAYE WELCOOP LOGISTIQUE',
+    type: 'debit',
+    amount: 499.93,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'LCR-WELCOOP-15362498',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0731-8',
+    date: '2026-07-31',
+    label: 'EFFET 15362497 PAYE PIERRE FABRE MEDICAMENT',
+    type: 'debit',
+    amount: 474.65,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'LCR-PIERREFABRE-15362497',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 30/07/2026
+  {
+    id: 'tx-0730-1',
+    date: '2026-07-30',
+    label: 'PRLV CERP BRETAGNE ATLANTIQUE CERP BA 7225202 REPARTITION',
+    type: 'debit',
+    amount: 13000.00,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-CERP-7225202-04',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0730-2',
+    date: '2026-07-30',
+    label: 'VIR CPAM LE MANS 00000072200618620869202607290000007220061862086920260729',
+    type: 'credit',
+    amount: 2781.97,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0729',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0730-3',
+    date: '2026-07-30',
+    label: 'VIR INST VERS KPMG AVOCATS HONORAIRES CONSEIL',
+    type: 'debit',
+    amount: 1300.49,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-KPMG-2026-07',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0730-4',
+    date: '2026-07-30',
+    label: 'PRLV KLESIA COTISATIONS ADP RETRAITE CADRES & NON-CADRES',
+    type: 'debit',
+    amount: 668.03,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'APPEL-KLESIA-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 27/07/2026 - JOURNÉE LCR RELEVÉ 00000663 + SALAIRES
+  {
+    id: 'tx-effet-15347180',
+    date: '2026-07-27',
+    label: 'EFFET 15347180 PAYE PFIZER (S.A.S) FACTURE 9702086525 VYNDAQEL',
+    type: 'debit',
+    amount: 6387.24,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: '9702086525',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-effet-15344586',
+    date: '2026-07-27',
+    label: 'EFFET 15344586 PAYE WELCOOP LOGISTIQUE REF 190182695',
+    type: 'debit',
+    amount: 646.61,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: '190182695',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-effet-15347181',
+    date: '2026-07-27',
+    label: 'EFFET 15347181 PAYE CSP MOVIANTO (U.LABS REGENERATE & FLUO BI-250)',
+    type: 'debit',
+    amount: 197.76,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'K660502338',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-effet-15347182',
+    date: '2026-07-27',
+    label: 'EFFET 15347182 PAYE S.A.S. SM EUROPE',
+    type: 'debit',
+    amount: 60.00,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-SME-01',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-sal-1',
+    date: '2026-07-27',
+    label: 'VIR WEB SOUMMA TOURE SALAIRE JUILLET',
+    type: 'debit',
+    amount: 2970.35,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'PAIE-TOURE-2026-07',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-sal-2',
+    date: '2026-07-27',
+    label: 'VIR WEB VANNIER JULIE SALAIRE JUILLET',
+    type: 'debit',
+    amount: 2073.68,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'PAIE-VANNIER-2026-07',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-sal-3',
+    date: '2026-07-27',
+    label: 'VIR INST VERS BRIZIOU OCEANE SALAIRE JUILLET',
+    type: 'debit',
+    amount: 1539.46,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'PAIE-BRIZIOU-2026-07',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-sal-4',
+    date: '2026-07-27',
+    label: 'VIR WEB ISSA NASMAH SALAIRE JUILLET',
+    type: 'debit',
+    amount: 1427.01,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'PAIE-ISSA-2026-07',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-cavp',
+    date: '2026-07-27',
+    label: 'PRLV CAISSE VIEILLESSE DES PHARMACIEN CAVP PVT M07 10883001 CAMARA N FAFODE',
+    type: 'debit',
+    amount: 2076.00,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'COTIS-CAVP-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0727-cpam',
+    date: '2026-07-27',
+    label: 'VIR CPAM LE MANS 00000072200618620469202607240000007220061862046920260724',
+    type: 'credit',
+    amount: 4959.40,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0724',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 24/07/2026
+  {
+    id: 'tx-0724-1',
+    date: '2026-07-24',
+    label: 'PRLV CERP BRETAGNE ATLANTIQUE CERP BA 7225202 REPARTITION',
+    type: 'debit',
+    amount: 17108.15,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-CERP-7225202',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0724-2',
+    date: '2026-07-24',
+    label: 'VIR CPAM LE MANS 00000072200618620369202607230000007220061862036920260723',
+    type: 'credit',
+    amount: 13062.28,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0723',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0724-3',
+    date: '2026-07-24',
+    label: 'VIR C.N.M.S.S. AGENCE COMPTABLE PRESTATIONS',
+    type: 'credit',
+    amount: 654.82,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CNMSS-0721',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 20/07/2026
+  {
+    id: 'tx-0720-1',
+    date: '2026-07-20',
+    label: 'VIR CPAM LE MANS 00000072200618619769202607170000007220061861976920260717',
+    type: 'credit',
+    amount: 6751.70,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0717',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0720-2',
+    date: '2026-07-20',
+    label: 'EFFET 15334016 PAYE OPELLA HEALTHCARE FRANCE',
+    type: 'debit',
+    amount: 2017.37,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-OPL-15334016',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0720-3',
+    date: '2026-07-20',
+    label: 'EFFET 15334017 PAYE UPSA SAS',
+    type: 'debit',
+    amount: 654.92,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-UPSA-15334017',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0720-4',
+    date: '2026-07-20',
+    label: 'PRLV ELECTRICITE DE FRANCE PHARMACIE DE L EPAU EDF',
+    type: 'debit',
+    amount: 417.78,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-EDF-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 16/07/2026
+  {
+    id: 'tx-0716-1',
+    date: '2026-07-16',
+    label: 'VIR CPAM LE MANS 00000072200618619469202607150000007220061861946920260715',
+    type: 'credit',
+    amount: 10780.94,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0715',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0716-2',
+    date: '2026-07-16',
+    label: 'PRLV URSSAF PAYS DE LA LOIRE JUIN26 DSN DECLARATION SOCIALE',
+    type: 'debit',
+    amount: 3880.00,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'DSN-URSSAF-062026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0716-3',
+    date: '2026-07-16',
+    label: 'EFFET 15328016 PAYE LABORATOIRES S V R',
+    type: 'debit',
+    amount: 1113.13,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-SVR-15328016',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 15/07/2026
+  {
+    id: 'tx-0715-1',
+    date: '2026-07-15',
+    label: 'PRLV PHOENIX OCP Z9633235700 GROSSISTE REPARTITION',
+    type: 'debit',
+    amount: 6060.56,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-OCP-6071000992',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0715-2',
+    date: '2026-07-15',
+    label: 'PRLV CERP BRETAGNE ATLANTIQUE CERP BA 7225202',
+    type: 'debit',
+    amount: 4677.64,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-CERP-7225202-03',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0715-3',
+    date: '2026-07-15',
+    label: 'VIR CPAM LE MANS 00000072200618619169202607130000007220061861916920260713',
+    type: 'credit',
+    amount: 3674.81,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0713',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 10/07/2026
+  {
+    id: 'tx-0710-1',
+    date: '2026-07-10',
+    label: 'PRLV CERP BRETAGNE ATLANTIQUE CERP BA 7225202',
+    type: 'debit',
+    amount: 15409.12,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-CERP-7225202-02',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0710-2',
+    date: '2026-07-10',
+    label: 'EFFET 15315739 PAYE CERP BRETAGNE ATLA LCR 10/07/26',
+    type: 'debit',
+    amount: 6799.61,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'LCR-CERP-15315739',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0710-3',
+    date: '2026-07-10',
+    label: 'VIR CPAM LE MANS 00000072200618618969202607090000007220061861896920260709',
+    type: 'credit',
+    amount: 5992.46,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0709',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0710-4',
+    date: '2026-07-10',
+    label: 'PRLV LLA EXPERTS COMPTABLES PHARMACIE LLA-004335-01',
+    type: 'debit',
+    amount: 1488.00,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-LLA-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 06/07/2026
+  {
+    id: 'tx-0706-1',
+    date: '2026-07-06',
+    label: 'PRLV ABBOTT FRANCE SAS PMT RMT9900249982 CAPTEURS FREESTYLE',
+    type: 'debit',
+    amount: 3663.30,
+    category: 'fournisseur',
+    status: 'rapproche',
+    matchedInvoice: 'FAC-ABB-9900249982',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0706-2',
+    date: '2026-07-06',
+    label: 'VIR CPAM LE MANS 00000072200618618369202607030000007220061861836920260703',
+    type: 'credit',
+    amount: 6212.00,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0703',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+
+  // 01/07/2026
+  {
+    id: 'tx-0701-1',
+    date: '2026-07-01',
+    label: 'VIR CPAM LE MANS 00000072200618618069202606300000007220061861806920260630',
+    type: 'credit',
+    amount: 8231.01,
+    category: 'cpam_ro',
+    status: 'rapproche',
+    matchedInvoice: 'NOEMIE-CPAM-72-0630',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0701-2',
+    date: '2026-07-01',
+    label: 'PRLV SIEMENS LEASE SERVICES SAS LOCATION AUTOMATE',
+    type: 'debit',
+    amount: 2409.22,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'LOC-SIEMENS-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0701-3',
+    date: '2026-07-01',
+    label: 'PRLV GRENKE LOCATION SAS EQUIPEMENTS',
+    type: 'debit',
+    amount: 943.60,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'LOC-GRENKE-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  },
+  {
+    id: 'tx-0701-4',
+    date: '2026-07-01',
+    label: 'ECH PRET 10003369433 01/07/26 CAPITAL & INTERETS CA PRO',
+    type: 'debit',
+    amount: 991.74,
+    category: 'charges_sociales',
+    status: 'rapproche',
+    matchedInvoice: 'ECH-PRET-CA-072026',
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609'
+  }
+];
+
+export const MOCK_COMPETITORS: CompetitorPharmacy[] = [
+  {
+    id: 'comp-1',
+    name: 'Pharmacie du Centre Commercial Les Atlantides',
+    distanceKm: 2.1,
+    address: 'Avenue d\'Antioche',
+    city: 'Le Mans',
+    type: 'centre_commercial',
+    marketPositioning: 'discount'
+  },
+  {
+    id: 'comp-2',
+    name: 'Pharmacie de la Gare Le Mans',
+    distanceKm: 3.4,
+    address: 'Place du 8 Mai 1945',
+    city: 'Le Mans Centre',
+    type: 'centre_ville',
+    marketPositioning: 'standard'
+  },
+  {
+    id: 'comp-3',
+    name: 'Pharmacie Lafayette des Jacobins',
+    distanceKm: 4.2,
+    address: 'Place des Jacobins',
+    city: 'Le Mans Centre',
+    type: 'centre_ville',
+    marketPositioning: 'discount'
+  },
+  {
+    id: 'comp-4',
+    name: 'Pharmacie Mutualiste de la Sarthe',
+    distanceKm: 3.8,
+    address: 'Rue Chanzy',
+    city: 'Le Mans',
+    type: 'mutualiste',
+    marketPositioning: 'standard'
+  },
+  {
+    id: 'comp-5',
+    name: 'Pharmacie d\'Yvré-l\'Évêque',
+    distanceKm: 4.9,
+    address: 'Avenue de Guyenne',
+    city: 'Yvré-l\'Évêque',
+    type: 'zone_rurale',
+    marketPositioning: 'premium'
+  }
+];
+
+export const MOCK_COMPETITOR_PRICES: CompetitorPriceComparison[] = [
+  {
+    productId: 'comp-prod-1',
+    productName: 'Doliprane 1000mg Gélules (Boîte de 8)',
+    cip: '3400936000018',
+    category: 'medicament_remboursable',
+    myPriceTtc: 2.18,
+    myCostHt: 1.12,
+    myMarginPercentage: 47.4,
+    averageCompetitorPriceTtc: 2.18,
+    minCompetitorPriceTtc: 2.18,
+    maxCompetitorPriceTtc: 2.18,
+    competitorPrices: [
+      { pharmacyId: 'comp-1', pharmacyName: 'Pharmacie Les Atlantides (2.1 km)', distanceKm: 2.1, priceTtc: 2.18, lastCheckedDate: '2026-08-20' },
+      { pharmacyId: 'comp-3', pharmacyName: 'Pharmacie Lafayette Jacobins (4.2 km)', distanceKm: 4.2, priceTtc: 2.18, lastCheckedDate: '2026-08-21' }
+    ],
+    suggestedPriceTtc: 2.18,
+    suggestedMarginPercentage: 47.4,
+    recommendation: 'prix_optimal',
+    priceElasticityScore: 1
+  },
+  {
+    productId: 'comp-prod-regenerate',
+    productName: 'REGENERATE BDB EXPERT Dentifrice 50ML',
+    cip: '8710447492130',
+    category: 'parapharmacie',
+    myPriceTtc: 9.90,
+    myCostHt: 5.70,
+    myMarginPercentage: 35.8,
+    averageCompetitorPriceTtc: 10.50,
+    minCompetitorPriceTtc: 8.99,
+    maxCompetitorPriceTtc: 11.90,
+    competitorPrices: [
+      { pharmacyId: 'comp-1', pharmacyName: 'Pharmacie Les Atlantides (2.1 km)', distanceKm: 2.1, priceTtc: 9.90, lastCheckedDate: '2026-08-22' },
+      { pharmacyId: 'comp-3', pharmacyName: 'Pharmacie Lafayette Jacobins (4.2 km)', distanceKm: 4.2, priceTtc: 8.99, lastCheckedDate: '2026-08-22' },
+      { pharmacyId: 'comp-2', pharmacyName: 'Pharmacie Gare Le Mans (3.4 km)', distanceKm: 3.4, priceTtc: 10.90, lastCheckedDate: '2026-08-21' }
+    ],
+    suggestedPriceTtc: 9.90,
+    suggestedMarginPercentage: 35.8,
+    recommendation: 'prix_optimal',
+    priceElasticityScore: 3
+  },
+  {
+    productId: 'comp-prod-2',
+    productName: 'Bioderma Créaline H2O 500ml',
+    cip: '3401399372351',
+    category: 'parapharmacie',
+    myPriceTtc: 12.50,
+    myCostHt: 7.20,
+    myMarginPercentage: 36.1,
+    averageCompetitorPriceTtc: 11.85,
+    minCompetitorPriceTtc: 9.99,
+    maxCompetitorPriceTtc: 13.90,
+    competitorPrices: [
+      { pharmacyId: 'comp-1', pharmacyName: 'Pharmacie Les Atlantides (2.1 km)', distanceKm: 2.1, priceTtc: 11.50, lastCheckedDate: '2026-08-22' },
+      { pharmacyId: 'comp-2', pharmacyName: 'Pharmacie Gare Le Mans (3.4 km)', distanceKm: 3.4, priceTtc: 12.90, lastCheckedDate: '2026-08-21' },
+      { pharmacyId: 'comp-3', pharmacyName: 'Pharmacie Lafayette Jacobins (4.2 km)', distanceKm: 4.2, priceTtc: 9.99, lastCheckedDate: '2026-08-22' }
+    ],
+    suggestedPriceTtc: 11.90,
+    suggestedMarginPercentage: 27.7,
+    recommendation: 'baisser_prix',
+    priceElasticityScore: 5
+  }
+];
+
+export const MOCK_DAILY_STATS: DailySaleStat[] = [
+  {
+    date: '2026-08-22 (Aujourd\'hui)',
+    totalCaHt: 5980.20,
+    totalCaTtc: 6480.50,
+    marginHt: 2040.10,
+    marginRate: 34.1,
+    prescriptionsCount: 168,
+    otcCustomersCount: 92,
+    totalTransactions: 260,
+    averageBasketTtc: 24.92,
+    hourlyDistribution: [
+      { hour: '08h30-10h', amountTtc: 920.00, transactions: 38 },
+      { hour: '10h-12h', amountTtc: 1640.50, transactions: 65 },
+      { hour: '12h-14h', amountTtc: 680.00, transactions: 28 },
+      { hour: '14h-16h', amountTtc: 1120.00, transactions: 44 },
+      { hour: '16h-18h', amountTtc: 1480.00, transactions: 58 },
+      { hour: '18h-19h30', amountTtc: 640.00, transactions: 27 }
+    ],
+    tvaBreakdown: [
+      { tvaRate: 2.1, baseHt: 4200.00, tvaAmount: 88.20 },
+      { tvaRate: 5.5, baseHt: 380.00, tvaAmount: 20.90 },
+      { tvaRate: 10.0, baseHt: 650.00, tvaAmount: 65.00 },
+      { tvaRate: 20.0, baseHt: 750.20, tvaAmount: 150.04 }
+    ],
+    paymentBreakdown: {
+      cb: 2450.00,
+      especes: 620.50,
+      tiersPayantRo: 2810.00,
+      tiersPayantRc: 520.00,
+      cheques: 80.00
+    }
+  },
+  {
+    date: '2026-08-21 (Hier)',
+    totalCaHt: 6210.00,
+    totalCaTtc: 6730.00,
+    marginHt: 2110.00,
+    marginRate: 33.9,
+    prescriptionsCount: 174,
+    otcCustomersCount: 98,
+    totalTransactions: 272,
+    averageBasketTtc: 24.74,
+    hourlyDistribution: [
+      { hour: '08h30-10h', amountTtc: 980.00, transactions: 40 },
+      { hour: '10h-12h', amountTtc: 1720.00, transactions: 70 },
+      { hour: '12h-14h', amountTtc: 710.00, transactions: 30 },
+      { hour: '14h-16h', amountTtc: 1150.00, transactions: 46 },
+      { hour: '16h-18h', amountTtc: 1510.00, transactions: 59 },
+      { hour: '18h-19h30', amountTtc: 660.00, transactions: 27 }
+    ],
+    tvaBreakdown: [
+      { tvaRate: 2.1, baseHt: 4350.00, tvaAmount: 91.35 },
+      { tvaRate: 5.5, baseHt: 410.00, tvaAmount: 22.55 },
+      { tvaRate: 10.0, baseHt: 680.00, tvaAmount: 68.00 },
+      { tvaRate: 20.0, baseHt: 770.00, tvaAmount: 154.00 }
+    ],
+    paymentBreakdown: {
+      cb: 2540.00,
+      especes: 640.00,
+      tiersPayantRo: 2920.00,
+      tiersPayantRc: 540.00,
+      cheques: 90.00
+    }
+  }
+];
+
+export const MOCK_ANNUAL_TRENDS = [
+  { month: 'Jan', ca2025: 142000, ca2026: 151000, marge2026: 51340, charges: 28400, ebe: 22940 },
+  { month: 'Fév', ca2025: 138000, ca2026: 146500, marge2026: 49810, charges: 27900, ebe: 21910 },
+  { month: 'Mar', ca2025: 145000, ca2026: 154000, marge2026: 52360, charges: 28600, ebe: 23760 },
+  { month: 'Avr', ca2025: 139000, ca2026: 148200, marge2026: 50388, charges: 28100, ebe: 22288 },
+  { month: 'Mai', ca2025: 144000, ca2026: 153800, marge2026: 52292, charges: 28500, ebe: 23792 },
+  { month: 'Juin', ca2025: 148000, ca2026: 157200, marge2026: 53448, charges: 29100, ebe: 24348 },
+  { month: 'Juil (Réel)', ca2025: 152000, ca2026: 156485, marge2026: 54200, charges: 29500, ebe: 24700 },
+  { month: 'Août (Est.)', ca2025: 140000, ca2026: 148520, marge2026: 50496, charges: 28900, ebe: 21596 },
+  { month: 'Sep', ca2025: 146000, ca2026: 155000, marge2026: 52700, charges: 28700, ebe: 24000 },
+  { month: 'Oct', ca2025: 154000, ca2026: 163000, marge2026: 55420, charges: 29500, ebe: 25920 },
+  { month: 'Nov', ca2025: 158000, ca2026: 168000, marge2026: 57120, charges: 30200, ebe: 26920 },
+  { month: 'Déc', ca2025: 166000, ca2026: 176000, marge2026: 59840, charges: 31500, ebe: 28340 }
+];
+
+export const MOCK_MONTHLY_REPORTS: MonthlyAccountingReport[] = [
+  {
+    month: '2026-07',
+    monthName: 'Juillet 2026 (Relevé N° 007 CA Clôturé)',
+    caTtc: 156485.45,
+    caHt: 148100.00,
+    achatsConsommesHt: 95400.00,
+    margeBruteHt: 52700.00,
+    margeBrutePct: 35.6,
+    chargesExternes: 10200.00,
+    chargesPersonnel: 17800.00,
+    ebe: 24700.00,
+    ebitdaPct: 16.7,
+    tvaCollectee: 8385.45,
+    tvaDeductible: 4720.00,
+    tvaAPayer: 3665.45,
+    tresorerieFinale: 16708.87,
+    status: 'cloture',
+    exportFormats: ['PDF', 'EXCEL', 'FEC']
+  },
+  {
+    month: '2026-06',
+    monthName: 'Juin 2026',
+    caTtc: 157200.00,
+    caHt: 148900.00,
+    achatsConsommesHt: 95452.00,
+    margeBruteHt: 53448.00,
+    margeBrutePct: 35.9,
+    chargesExternes: 9900.00,
+    chargesPersonnel: 19200.00,
+    ebe: 24348.00,
+    ebitdaPct: 16.3,
+    tvaCollectee: 8300.00,
+    tvaDeductible: 4720.00,
+    tvaAPayer: 3580.00,
+    tresorerieFinale: 25746.61, // Ancien solde créditeur au 30/06
+    status: 'cloture',
+    exportFormats: ['PDF', 'EXCEL', 'FEC']
+  }
+];
+
+export const MOCK_NOTIFICATIONS: PushNotificationAlert[] = [
+  {
+    id: 'notif-1',
+    title: '🏦 Rapprochement Crédit Agricole Juillet 2026',
+    message: 'Relevé N° 007 du 31/07/2026 lettré à 100%. Solde de clôture : 16 708,87 €.',
+    type: 'reconciliation_bancaire',
+    severity: 'info',
+    timestamp: 'À l\'instant',
+    isRead: false,
+    actionLink: 'tresorerie'
+  },
+  {
+    id: 'notif-2',
+    title: '📄 Relevé d\'Effets LCR N° 00000663 Traité',
+    message: 'Total 7 291,61 € prélevé le 27/07/2026 (Pfizer 6 387,24 €, Welcoop 646,61 €, CSP U.Labs 197,76 €, SM Europe 60,00 €).',
+    type: 'retard_paiement',
+    severity: 'info',
+    timestamp: 'Il y a 1h',
+    isRead: false,
+    actionLink: 'lcr'
+  },
+  {
+    id: 'notif-3',
+    title: '⏳ Péremption Imminente (<30 jours)',
+    message: 'Amoxicilline Biogaran 1g (DLUO 15/09/2026) et Vaccin VaxigripTetra (DLUO 05/09/2026) à surveiller.',
+    type: 'peremption',
+    severity: 'critique',
+    timestamp: 'Il y a 3h',
+    isRead: false,
+    actionLink: 'stocks'
+  }
+];

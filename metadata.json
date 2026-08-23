@@ -1,0 +1,10 @@
+{
+  "name": "PharmaPilot Officine",
+  "description": "Contrôle de gestion pour pharmacie d'officine : tableau de bord de santé des connecteurs API en temps réel (Resopharma, Crédit Agricole Open Banking, SY by Cegedim, Chorus Pro, WinPharma LGO, OCP, Phoenix, DMP), connecteur concentrateur RESOPHARMA (télétransmission SESAM-Vitale, retours NOEMIE et bordereaux DRE mutuelles), contrôle des factures et traites LCR, coffres-forts factures électroniques, stocks et péremptions, trésorerie et réconciliation bancaire, veille prix et exports comptables.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
