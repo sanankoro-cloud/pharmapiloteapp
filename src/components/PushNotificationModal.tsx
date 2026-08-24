@@ -47,8 +47,9 @@ export const PushNotificationModal: React.FC<PushNotificationModalProps> = ({
 
   const getIcon = (type: PushNotificationAlert['type']) => {
     switch (type) {
+      case 'marge_chute': return ShieldAlert;
       case 'retard_paiement': return CreditCard;
-      case 'alerte_budget': return ShieldAlert;
+      case 'alerte_budget': return AlertTriangle;
       case 'peremption': return Clock;
       case 'concurrent_prix': return Radar;
       case 'reconciliation_bancaire': return Landmark;

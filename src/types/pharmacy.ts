@@ -166,7 +166,7 @@ export interface PushNotificationAlert {
   id: string;
   title: string;
   message: string;
-  type: 'retard_paiement' | 'alerte_budget' | 'peremption' | 'rupture_stock' | 'reconciliation_bancaire' | 'concurrent_prix';
+  type: 'retard_paiement' | 'alerte_budget' | 'peremption' | 'rupture_stock' | 'reconciliation_bancaire' | 'concurrent_prix' | 'marge_chute';
   severity: 'critique' | 'attention' | 'info';
   timestamp: string;
   isRead: boolean;

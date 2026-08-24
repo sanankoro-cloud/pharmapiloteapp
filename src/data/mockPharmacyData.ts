@@ -1363,12 +1363,22 @@ export const MOCK_MONTHLY_REPORTS: MonthlyAccountingReport[] = [
 
 export const MOCK_NOTIFICATIONS: PushNotificationAlert[] = [
   {
+    id: 'notif-margin-1',
+    title: '🚨 Alerte Marge : Chute > 5% Parapharmacie',
+    message: 'La marge brute Parapharmacie a chuté à 36,80% (-5,70 pts vs moyenne mobile 3 mois à 42,50%). Risque de perte : -1 986 €/mois.',
+    type: 'marge_chute',
+    severity: 'critique',
+    timestamp: 'À l\'instant',
+    isRead: false,
+    actionLink: 'surveillance_marges'
+  },
+  {
     id: 'notif-1',
     title: '🏦 Rapprochement Crédit Agricole Juillet 2026',
     message: 'Relevé N° 007 du 31/07/2026 lettré à 100%. Solde de clôture : 16 708,87 €.',
     type: 'reconciliation_bancaire',
     severity: 'info',
-    timestamp: 'À l\'instant',
+    timestamp: 'Il y a 10 min',
     isRead: false,
     actionLink: 'tresorerie'
   },

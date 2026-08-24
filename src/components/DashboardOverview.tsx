@@ -45,6 +45,7 @@ import { LcrStatement } from '../types/lcr';
 import { ResopharmaBordereau } from '../types/resopharma';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { CashFlowForecast30Days } from './CashFlowForecast30Days';
+import { MarginGaugeCard } from './MarginGaugeCard';
 
 interface DashboardOverviewProps {
   summary: PharmacyFinancialSummary;
@@ -138,60 +139,77 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Critical Alert Bar if overdue orders or near-expiries exist */}
-      {(overdueOrders.length > 0 || nearExpiryProducts.length > 0 || summary.activeBudgetAlertsCount > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {overdueOrders.length > 0 && (
-            <div 
-              onClick={() => onNavigateTab('fournisseurs')}
-              className="cursor-pointer bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 transition shadow-xs"
-            >
-              <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-xs font-bold text-rose-900 dark:text-rose-200">
-                  {overdueOrders.length} Facture(s) Fournisseur en Retard
-                </h2>
-                <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
-                  Dont {overdueOrders[0].supplierName} ({formatCurrency(overdueOrders[0].totalTtc)}). Risque de suspension des livraisons.
-                </p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Urgent Margin Watchdog Alert Card */}
+        <div 
+          onClick={() => onNavigateTab('surveillance_marges')}
+          className="cursor-pointer bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-500 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/80 dark:hover:bg-rose-900/50 transition shadow-md group"
+        >
+          <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-xs font-black text-rose-900 dark:text-rose-200">
+                Alerte Marge Parapharmacie (-5,70 pts)
+              </h2>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-600 text-white animate-ping" />
             </div>
-          )}
-
-          {nearExpiryProducts.length > 0 && (
-            <div 
-              onClick={() => onNavigateTab('stocks')}
-              className="cursor-pointer bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition shadow-xs"
-            >
-              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                  {nearExpiryProducts.length} Lots à Péremption Imminente (&lt;30j)
-                </h2>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                  Ex: {nearExpiryProducts[0].name} (DLUO {nearExpiryProducts[0].expiryDate}). Action de retour ou déstockage requise.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {summary.activeBudgetAlertsCount > 0 && (
-            <div 
-              onClick={() => onNavigateTab('depenses')}
-              className="cursor-pointer bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition shadow-xs"
-            >
-              <ShieldAlert className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
-              <div>
-                <h2 className="text-xs font-bold text-orange-900 dark:text-orange-200">
-                  {summary.activeBudgetAlertsCount} Alertes Budgétaires Critiques
-                </h2>
-                <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
-                  Dépassement sur l'électricité climatisation et charges salariales ce mois-ci.
-                </p>
-              </div>
-            </div>
-          )}
+            <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+              Marge à 36,80% vs 42,50% MM3M (chute &gt; 5%). Perte estimée : -1 986 €/mois. Cliquez pour corriger.
+            </p>
+          </div>
         </div>
-      )}
+
+        {overdueOrders.length > 0 && (
+          <div 
+            onClick={() => onNavigateTab('fournisseurs')}
+            className="cursor-pointer bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 transition shadow-xs"
+          >
+            <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                {overdueOrders.length} Facture(s) Fournisseur en Retard
+              </h2>
+              <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+                Dont {overdueOrders[0].supplierName} ({formatCurrency(overdueOrders[0].totalTtc)}). Risque de suspension des livraisons.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {nearExpiryProducts.length > 0 && (
+          <div 
+            onClick={() => onNavigateTab('stocks')}
+            className="cursor-pointer bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition shadow-xs"
+          >
+            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                {nearExpiryProducts.length} Lots à Péremption Imminente (&lt;30j)
+              </h2>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                Ex: {nearExpiryProducts[0].name} (DLUO {nearExpiryProducts[0].expiryDate}). Action de retour ou déstockage requise.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {summary.activeBudgetAlertsCount > 0 && (
+          <div 
+            onClick={() => onNavigateTab('depenses')}
+            className="cursor-pointer bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition shadow-xs"
+          >
+            <ShieldAlert className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+            <div>
+              <h2 className="text-xs font-bold text-orange-900 dark:text-orange-200">
+                {summary.activeBudgetAlertsCount} Alertes Budgétaires
+              </h2>
+              <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
+                Dépassement sur l'électricité climatisation et charges salariales ce mois-ci.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Primary KPI Grid (6 Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -294,6 +312,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Margin Gauge Card & Health Scale vs MM3M */}
+      <MarginGaugeCard onNavigateTab={onNavigateTab} />
 
       {/* 30-Day Cash Flow Forecast (NOEMIE/DRE vs LCR/Charges) */}
       <CashFlowForecast30Days
@@ -430,73 +451,129 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
-      {/* Quick Access Grid for New Audit Modules */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Quick Access Grid for Analytical & Audit Modules */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        {/* Module 0: Surveillance des Marges en Temps Réel */}
+        <div 
+          onClick={() => onNavigateTab('surveillance_marges')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border-2 border-rose-400 dark:border-rose-700 bg-rose-50/30 dark:bg-rose-950/30 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-rose-600 animate-pulse" />
+                Surveillance Marges Live
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+              Watchdog Chute de Marge (&gt;5%)
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Détection temps réel par catégorie vs Moyenne Mobile 3M. Alerte critique Parapharmacie (-5,7 pts).
+            </p>
+          </div>
+          <div className="inline-flex items-center text-xs font-black text-white bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-lg border border-rose-500 shadow-xs self-start">
+            Audit Marges Live →
+          </div>
+        </div>
+
         {/* Module 1: Variations Prix d'Achat */}
         <div 
           onClick={() => onNavigateTab('variations_prix')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20"
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-rose-600 animate-pulse" />
-              Variations Prix d'Achat
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-rose-600 animate-pulse" />
+                Variations Prix d'Achat
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+              Alertes Hausses Tarifs & PUMP
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              3 hausses détectées sur Pfizer & OCP (+13% Doliprane). Impact marge estimé à -2 878 €/an. Ajustez vos prix de vente.
+            </p>
           </div>
-          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
-            Alertes Hausses Tarifs & PUMP
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            3 hausses détectées sur Pfizer & OCP (+13% Doliprane). Impact marge estimé à -2 878 €/an. Ajustez vos prix de vente.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900/60 px-3 py-1.5 rounded-lg border border-rose-200/50">
-            Traiter les Alertes Prix d'Achat →
+          <div className="inline-flex items-center text-xs font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900/60 px-3 py-1.5 rounded-lg border border-rose-200/50 self-start">
+            Traiter les Alertes →
           </div>
         </div>
 
         {/* Module 2: Contrôle Remises & RFA */}
         <div 
           onClick={() => onNavigateTab('remises_rfa')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/20"
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/20 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
-              <Percent className="w-4 h-4 text-teal-600" />
-              Audit Fournisseurs & RFA
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
+                <Percent className="w-4 h-4 text-teal-600" />
+                Audit Fournisseurs & RFA
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+              Contrôle Remises Commerciales
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              18 949 € de RFA acquises. 2 sous-remises OCP/Urgo à réclamer (+515 €) et 6 881 € d'avoirs en attente.
+            </p>
           </div>
-          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
-            Contrôle Remises Commerciales
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            18 949 € de RFA acquises. 2 sous-remises OCP/Urgo à réclamer (+515 €) et 6 881 € d'avoirs en attente de déduction.
-          </p>
-          <div className="inline-flex items-center text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 hover:bg-teal-200 dark:hover:bg-teal-900/60 px-3 py-1.5 rounded-lg border border-teal-200/50">
-            Auditer les Remises & RFA →
+          <div className="inline-flex items-center text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 hover:bg-teal-200 dark:hover:bg-teal-900/60 px-3 py-1.5 rounded-lg border border-teal-200/50 self-start">
+            Auditer les Remises →
           </div>
         </div>
 
-        {/* Module 3: Bilan Annuel Expert-Comptable */}
+        {/* Module 3: Saisonnalité & Tendances 3 Ans */}
+        <div 
+          onClick={() => onNavigateTab('ventes')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/20 dark:bg-indigo-950/20 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                Saisonnalité 3 Ans (2024-2026)
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+              Tendances CA & Marge Officine
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Diagnostic comparé sur 3 ans : pics grippaux hivernaux, allergies printanières et creux estivaux pour anticiper les commandes.
+            </p>
+          </div>
+          <div className="inline-flex items-center text-xs font-bold text-indigo-800 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950/60 hover:bg-indigo-200 dark:hover:bg-indigo-900/60 px-3 py-1.5 rounded-lg border border-indigo-200/50 self-start">
+            Analyser les Cycles 3 Ans →
+          </div>
+        </div>
+
+        {/* Module 4: Bilan Annuel Expert-Comptable */}
         <div 
           onClick={() => onNavigateTab('bilan_annuel')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/20"
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/20 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-              <Scale className="w-4 h-4 text-emerald-600" />
-              Plaquette Expert-Comptable
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                <Scale className="w-4 h-4 text-emerald-600" />
+                Plaquette Expert-Comptable
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+              Bilan Annuel & Valorisation Interfimo
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Bilan Actif/Passif, SIG, EBE (208 k€), résultat net et valorisation du fonds d'officine à 1,485 M€ (80% du CA HT).
+            </p>
           </div>
-          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
-            Bilan Annuel & Valorisation Interfimo
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            Bilan Actif/Passif, SIG, EBE (208 k€), résultat net et valorisation du fonds d'officine à 1,485 M€ (80% du CA HT).
-          </p>
-          <div className="inline-flex items-center text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-lg border border-emerald-200/50">
+          <div className="inline-flex items-center text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-lg border border-emerald-200/50 self-start">
             Consulter le Bilan Annuel →
           </div>
         </div>

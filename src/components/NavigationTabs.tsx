@@ -12,7 +12,8 @@ import {
   ShieldCheck, 
   Activity,
   Percent,
-  Scale
+  Scale,
+  ShieldAlert
 } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -27,6 +28,7 @@ interface NavigationTabsProps {
   connectorsDownCount?: number;
   priceHikesCount?: number;
   discountsAnomaliesCount?: number;
+  marginAlertsCount?: number;
 }
 
 export const NavigationTabs: React.FC<NavigationTabsProps> = ({
@@ -40,7 +42,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   auditLogsCount = 12,
   connectorsDownCount = 0,
   priceHikesCount = 3,
-  discountsAnomaliesCount = 2
+  discountsAnomaliesCount = 2,
+  marginAlertsCount = 1
 }) => {
   const tabs = [
     {
@@ -48,6 +51,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       label: 'Tableau de Bord',
       icon: LayoutDashboard,
       badge: null
+    },
+    {
+      id: 'surveillance_marges',
+      label: 'Surveillance Marges Temps Réel',
+      icon: ShieldAlert,
+      badge: marginAlertsCount > 0 ? 'Alerte -5,7%' : 'MM3M OK',
+      badgeColor: marginAlertsCount > 0 ? 'bg-rose-600 text-white animate-pulse shadow-xs font-black' : 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
     },
     {
       id: 'connecteurs',
@@ -121,9 +131,10 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     },
     {
       id: 'ventes',
-      label: 'Ventes & Tendances N/N-1',
+      label: 'Ventes & Saisonnalité (3 Ans)',
       icon: TrendingUp,
-      badge: null
+      badge: '2024-2026',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
     },
     {
       id: 'prix',

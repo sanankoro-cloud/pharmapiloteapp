@@ -18,7 +18,8 @@ import {
   Moon,
   Activity,
   Percent,
-  Scale
+  Scale,
+  ShieldAlert
 } from 'lucide-react';
 
 interface MobileMoreMenuModalProps {
@@ -51,6 +52,13 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   if (!isOpen) return null;
 
   const menuItems = [
+    {
+      id: 'surveillance_marges',
+      label: 'Surveillance Marges Temps Réel',
+      sub: 'Alerte chute > 5% vs Moyenne Mobile 3M & simulation caisse',
+      icon: ShieldAlert,
+      color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60'
+    },
     {
       id: 'variations_prix',
       label: 'Variations du Prix d\'Achat (PUMP)',
@@ -95,8 +103,8 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
     },
     {
       id: 'ventes',
-      label: 'Ventes & Tendances N vs N-1',
-      sub: 'Analyse mensuelle, marge et saisonnalité',
+      label: 'Ventes & Saisonnalité (3 Ans)',
+      sub: 'Comparatif CA & Marge 2024-2026, indices et trimestres',
       icon: TrendingUp,
       color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
     },

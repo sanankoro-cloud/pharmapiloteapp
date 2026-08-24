@@ -92,6 +92,7 @@ import { ConnectorsStatusView } from './components/ConnectorsStatusView';
 import { AuditTrailView } from './components/AuditTrailView';
 import { RecurringExpensesView } from './components/RecurringExpensesView';
 import { AnnualTrendsSalesView } from './components/AnnualTrendsSalesView';
+import { RealtimeMarginWatchdogView } from './components/RealtimeMarginWatchdogView';
 import { CompetitorPriceRadarView } from './components/CompetitorPriceRadarView';
 import { AccountingReportsView } from './components/AccountingReportsView';
 import { PushNotificationModal } from './components/PushNotificationModal';
@@ -1501,6 +1502,20 @@ export default function App() {
     showToast(`Avoir de ${amount.toFixed(2)} € enregistré et déduit avec succès.`);
   };
 
+  const handleTriggerPushNotification = (title: string, message: string, severity: 'critique' | 'attention' | 'info') => {
+    const newNotif: PushNotificationAlert = {
+      id: `notif-margin-${Date.now()}`,
+      title,
+      message,
+      type: 'marge_chute',
+      severity,
+      timestamp: 'À l\'instant',
+      isRead: false,
+      actionLink: 'surveillance_marges'
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const criticalExpiries = products.filter(p => p.daysUntilExpiry <= 30);
   const overdueOrders = orders.filter(o => o.paymentStatus === 'en_retard');
@@ -1511,6 +1526,7 @@ export default function App() {
   const connectorsDownCount = connectorsHealth.filter(c => c.status === 'down').length;
   const priceHikesCount = priceVariations.filter(v => v.deltaAmountHt > 0 && v.status === 'non_traite').length;
   const discountsAnomaliesCount = discountContracts.reduce((acc, c) => acc + c.discrepancies.filter(d => d.status === 'a_reclamer').length, 0);
+  const marginAlertsCount = 1;
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
@@ -1556,6 +1572,7 @@ export default function App() {
         connectorsDownCount={connectorsDownCount}
         priceHikesCount={priceHikesCount}
         discountsAnomaliesCount={discountsAnomaliesCount}
+        marginAlertsCount={marginAlertsCount}
       />
 
       {/* Main Content Area */}
@@ -1575,6 +1592,13 @@ export default function App() {
             onSyncBank={handleSyncBank}
             isSyncingBank={isSyncingBank}
             onOpenAccountingModal={() => setActiveTab('rapports')}
+          />
+        )}
+
+        {activeTab === 'surveillance_marges' && (
+          <RealtimeMarginWatchdogView
+            onNavigateTab={setActiveTab}
+            onTriggerPushNotification={handleTriggerPushNotification}
           />
         )}
 
