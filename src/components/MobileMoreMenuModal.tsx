@@ -16,7 +16,9 @@ import {
   Network,
   Sun,
   Moon,
-  Activity
+  Activity,
+  Percent,
+  Scale
 } from 'lucide-react';
 
 interface MobileMoreMenuModalProps {
@@ -49,6 +51,27 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   if (!isOpen) return null;
 
   const menuItems = [
+    {
+      id: 'variations_prix',
+      label: 'Variations du Prix d\'Achat (PUMP)',
+      sub: 'Alertes hausses laboratoires & impact marge',
+      icon: TrendingUp,
+      color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60'
+    },
+    {
+      id: 'remises_rfa',
+      label: 'Contrôle des Remises & RFA',
+      sub: 'Audit sous-remises, avoirs & paliers volume',
+      icon: Percent,
+      color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60'
+    },
+    {
+      id: 'bilan_annuel',
+      label: 'Bilan Annuel Expert-Comptable',
+      icon: Scale,
+      sub: 'Actif/Passif, SIG, Ratios & Valorisation Interfimo',
+      color: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
     {
       id: 'connecteurs',
       label: 'État des Connecteurs & Santé API',

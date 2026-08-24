@@ -7,10 +7,12 @@ import {
   Receipt, 
   TrendingUp, 
   Radar, 
-  FileText,
-  AlertCircle,
-  ShieldCheck,
-  Activity
+  FileText, 
+  AlertCircle, 
+  ShieldCheck, 
+  Activity,
+  Percent,
+  Scale
 } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -23,6 +25,8 @@ interface NavigationTabsProps {
   lcrToControlCount?: number;
   auditLogsCount?: number;
   connectorsDownCount?: number;
+  priceHikesCount?: number;
+  discountsAnomaliesCount?: number;
 }
 
 export const NavigationTabs: React.FC<NavigationTabsProps> = ({
@@ -34,7 +38,9 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   lcrDisputesCount = 1,
   lcrToControlCount = 1,
   auditLogsCount = 12,
-  connectorsDownCount = 0
+  connectorsDownCount = 0,
+  priceHikesCount = 3,
+  discountsAnomaliesCount = 2
 }) => {
   const tabs = [
     {
@@ -58,11 +64,32 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       badgeColor: 'bg-rose-500 text-white'
     },
     {
+      id: 'variations_prix',
+      label: 'Variations Prix d\'Achat',
+      icon: TrendingUp,
+      badge: priceHikesCount > 0 ? `${priceHikesCount} hausses` : null,
+      badgeColor: 'bg-rose-500 text-white animate-pulse'
+    },
+    {
+      id: 'remises_rfa',
+      label: 'Contrôle Remises & RFA',
+      icon: Percent,
+      badge: discountsAnomaliesCount > 0 ? `${discountsAnomaliesCount} écarts` : 'Audit OK',
+      badgeColor: discountsAnomaliesCount > 0 ? 'bg-amber-500 text-white' : 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
+    },
+    {
       id: 'lcr',
       label: 'Contrôle LCR & Traites',
       icon: Receipt,
       badge: lcrDisputesCount > 0 ? `${lcrDisputesCount} litige LCR` : lcrToControlCount > 0 ? `${lcrToControlCount} à pointer` : null,
       badgeColor: lcrDisputesCount > 0 ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'
+    },
+    {
+      id: 'bilan_annuel',
+      label: 'Bilan Annuel Expert-Comptable',
+      icon: Scale,
+      badge: 'Interfimo',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
     },
     {
       id: 'stocks',

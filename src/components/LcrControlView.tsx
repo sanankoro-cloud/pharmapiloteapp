@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -27,35 +27,54 @@ import {
   AlertCircle,
   Eye,
   Send,
-  X
+  X,
+  Wand2,
+  Sliders
 } from 'lucide-react';
 import { 
   LcrStatement, 
   LcrStatus, 
   LcrInvoiceItem, 
-  LcrCreditNoteItem 
+  LcrCreditNoteItem,
+  LcrAutoMatchRulesConfig,
+  DEFAULT_LCR_RULES_CONFIG,
+  LcrAutoMatchProposal
 } from '../types/lcr';
+import { ElectronicInvoice } from '../types/electronicInvoicing';
+import { SupplierOrder } from '../types/pharmacy';
+import { MOCK_ELECTRONIC_INVOICES } from '../data/mockElectronicInvoices';
+import { MOCK_SUPPLIERS_ORDERS } from '../data/mockPharmacyData';
+import { executeLcrAutoMatching } from '../utils/lcrAutoMatcher';
+import { LcrToleranceConfigModal } from './LcrToleranceConfigModal';
+import { LcrAutoMatchModal } from './LcrAutoMatchModal';
+import { LcrAnomalyAlertBanner } from './LcrAnomalyAlertBanner';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
 import confetti from 'canvas-confetti';
 
 interface LcrControlViewProps {
   statements: LcrStatement[];
+  electronicInvoices?: ElectronicInvoice[];
+  orders?: SupplierOrder[];
   onValidateBap: (statementId: string, signedBy: string, notes?: string) => void;
   onDeclareDispute: (statementId: string, reason: string) => void;
   onSimulateLcrDebit: (statementId: string) => void;
   onToggleInvoiceVerification: (statementId: string, invoiceId: string) => void;
   onImportNewStatement: (newStatement: LcrStatement) => void;
+  onBatchVerifyInvoices?: (matchesToApply: { statementId: string; invoiceId: string }[]) => void;
   currentBankBalance: number;
   onOpenElectronicInvoicingVault?: () => void;
 }
 
 export const LcrControlView: React.FC<LcrControlViewProps> = ({
   statements,
+  electronicInvoices = MOCK_ELECTRONIC_INVOICES,
+  orders = MOCK_SUPPLIERS_ORDERS,
   onValidateBap,
   onDeclareDispute,
   onSimulateLcrDebit,
   onToggleInvoiceVerification,
   onImportNewStatement,
+  onBatchVerifyInvoices,
   currentBankBalance,
   onOpenElectronicInvoicingVault
 }) => {
@@ -64,6 +83,16 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
   const [filterSupplierType, setFilterSupplierType] = useState<string>('all');
   const [expandedStatementId, setExpandedStatementId] = useState<string | null>('lcr-ocp-2026-08');
   
+  // Auto-Match & Tolerance Rules Configuration State
+  const [rulesConfig, setRulesConfig] = useState<LcrAutoMatchRulesConfig>(DEFAULT_LCR_RULES_CONFIG);
+  const [isAutoMatchModalOpen, setIsAutoMatchModalOpen] = useState(false);
+  const [isToleranceConfigModalOpen, setIsToleranceConfigModalOpen] = useState(false);
+
+  // Compute Auto-Matching proposals & anomalies dynamically
+  const matchResult = useMemo(() => {
+    return executeLcrAutoMatching(statements, electronicInvoices, orders, rulesConfig);
+  }, [statements, electronicInvoices, orders, rulesConfig]);
+
   // Modals
   const [isBapModalOpen, setIsBapModalOpen] = useState(false);
   const [selectedStatementForBap, setSelectedStatementForBap] = useState<LcrStatement | null>(null);
@@ -97,6 +126,24 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
 
     return matchesSearch && matchesStatus && matchesSupplierType;
   });
+
+  const handleApplyAutoMatches = (selectedProposalIds: string[]) => {
+    const selectedProposals = matchResult.proposals.filter(p => selectedProposalIds.includes(p.id));
+    const matchesToApply = selectedProposals.map(p => ({
+      statementId: p.statementId,
+      invoiceId: p.invoiceId
+    }));
+
+    if (onBatchVerifyInvoices) {
+      onBatchVerifyInvoices(matchesToApply);
+    } else {
+      // Fallback: apply one by one
+      matchesToApply.forEach(m => {
+        onToggleInvoiceVerification(m.statementId, m.invoiceId);
+      });
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    }
+  };
 
   const getStatusBadge = (status: LcrStatus) => {
     switch (status) {
@@ -311,6 +358,30 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Intelligent Auto-Match Button */}
+          <button
+            onClick={() => setIsAutoMatchModalOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-linear-to-r from-indigo-600 to-teal-600 hover:from-indigo-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-indigo-500/20 transition cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>Auto-Lettrage Intelligent</span>
+            {matchResult.unverifiedProposalsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-white text-indigo-900 text-[10px] font-black">
+                {matchResult.unverifiedProposalsCount}
+              </span>
+            )}
+          </button>
+
+          {/* Tolerance Rules Config Button */}
+          <button
+            onClick={() => setIsToleranceConfigModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition"
+            title="Configurer les règles de tolérance d'écart de montant et dates"
+          >
+            <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Tolérance (± {rulesConfig.amountToleranceEuros.toFixed(2)} €)</span>
+          </button>
+
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition"
@@ -328,6 +399,17 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Visual Anomaly Alert Banner (when errors/anomalies exceed threshold) */}
+      <LcrAnomalyAlertBanner
+        anomalies={matchResult.anomalies}
+        config={rulesConfig}
+        onOpenToleranceConfig={() => setIsToleranceConfigModalOpen(true)}
+        onDeclareDispute={(statementId) => {
+          const s = statements.find(st => st.id === statementId);
+          if (s) handleOpenDisputeModal(s);
+        }}
+      />
 
       {/* KPI Cards Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1077,6 +1159,30 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal: Intelligent Auto-Matching */}
+      <LcrAutoMatchModal
+        isOpen={isAutoMatchModalOpen}
+        onClose={() => setIsAutoMatchModalOpen(false)}
+        matchResult={matchResult}
+        config={rulesConfig}
+        onApplyMatches={handleApplyAutoMatches}
+        onOpenToleranceConfig={() => {
+          setIsAutoMatchModalOpen(false);
+          setIsToleranceConfigModalOpen(true);
+        }}
+      />
+
+      {/* Modal: Tolerance Rules Configuration */}
+      <LcrToleranceConfigModal
+        isOpen={isToleranceConfigModalOpen}
+        onClose={() => setIsToleranceConfigModalOpen(false)}
+        config={rulesConfig}
+        onSaveConfig={(newConfig) => {
+          setRulesConfig(newConfig);
+        }}
+        currentAnomaliesCount={matchResult.anomaliesCount}
+      />
     </div>
   );
 };

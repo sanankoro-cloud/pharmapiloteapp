@@ -17,7 +17,8 @@ import {
   Users,
   Percent,
   Calendar,
-  Layers
+  Layers,
+  Scale
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -425,6 +426,78 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(380)}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Access Grid for New Audit Modules */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Module 1: Variations Prix d'Achat */}
+        <div 
+          onClick={() => onNavigateTab('variations_prix')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-rose-600 animate-pulse" />
+              Variations Prix d'Achat
+            </span>
+            <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          </div>
+          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+            Alertes Hausses Tarifs & PUMP
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+            3 hausses détectées sur Pfizer & OCP (+13% Doliprane). Impact marge estimé à -2 878 €/an. Ajustez vos prix de vente.
+          </p>
+          <div className="inline-flex items-center text-xs font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900/60 px-3 py-1.5 rounded-lg border border-rose-200/50">
+            Traiter les Alertes Prix d'Achat →
+          </div>
+        </div>
+
+        {/* Module 2: Contrôle Remises & RFA */}
+        <div 
+          onClick={() => onNavigateTab('remises_rfa')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/20"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
+              <Percent className="w-4 h-4 text-teal-600" />
+              Audit Fournisseurs & RFA
+            </span>
+            <ArrowUpRight className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          </div>
+          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+            Contrôle Remises Commerciales
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+            18 949 € de RFA acquises. 2 sous-remises OCP/Urgo à réclamer (+515 €) et 6 881 € d'avoirs en attente de déduction.
+          </p>
+          <div className="inline-flex items-center text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 hover:bg-teal-200 dark:hover:bg-teal-900/60 px-3 py-1.5 rounded-lg border border-teal-200/50">
+            Auditer les Remises & RFA →
+          </div>
+        </div>
+
+        {/* Module 3: Bilan Annuel Expert-Comptable */}
+        <div 
+          onClick={() => onNavigateTab('bilan_annuel')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/20 dark:bg-emerald-950/20"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+              <Scale className="w-4 h-4 text-emerald-600" />
+              Plaquette Expert-Comptable
+            </span>
+            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          </div>
+          <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
+            Bilan Annuel & Valorisation Interfimo
+          </h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+            Bilan Actif/Passif, SIG, EBE (208 k€), résultat net et valorisation du fonds d'officine à 1,485 M€ (80% du CA HT).
+          </p>
+          <div className="inline-flex items-center text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-lg border border-emerald-200/50">
+            Consulter le Bilan Annuel →
           </div>
         </div>
       </div>

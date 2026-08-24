@@ -31,6 +31,13 @@ import {
   INITIAL_CONNECTORS_HEALTH, 
   INITIAL_HEALTH_LOGS 
 } from './data/mockConnectorHealth';
+import {
+  MOCK_PURCHASE_PRICE_VARIATIONS,
+  MOCK_SUPPLIER_RFA_CONTRACTS
+} from './data/mockPurchasingAndDiscounts';
+import {
+  MOCK_ANNUAL_CPA_REPORTS
+} from './data/mockAccountingBalance';
 import { 
   ProductStock, 
   SupplierOrder, 
@@ -61,12 +68,23 @@ import {
   ConnectorHealthItem, 
   ConnectorHealthLog 
 } from './types/connectorStatus';
+import {
+  PurchasePriceVariation,
+  SupplierRfaContract,
+  PriceVariationStatus
+} from './types/purchasingAndDiscounts';
+import {
+  AnnualCpaReport
+} from './types/accountingBalance';
 
 import { Navbar } from './components/Navbar';
 import { NavigationTabs } from './components/NavigationTabs';
 import { MobileNav } from './components/MobileNav';
 import { DashboardOverview } from './components/DashboardOverview';
 import { SuppliersOrdersView } from './components/SuppliersOrdersView';
+import { PurchasePriceVariationView } from './components/PurchasePriceVariationView';
+import { CommercialDiscountsControlView } from './components/CommercialDiscountsControlView';
+import { AnnualCpaBalanceView } from './components/AnnualCpaBalanceView';
 import { LcrControlView } from './components/LcrControlView';
 import { StockExpiryView } from './components/StockExpiryView';
 import { TreasuryBankReconciliationView } from './components/TreasuryBankReconciliationView';
@@ -119,6 +137,15 @@ export default function App() {
   const [resopharmaSyncLogs, setResopharmaSyncLogs] = useState<ResopharmaSyncLog[]>(MOCK_RESOPHARMA_SYNC_LOGS);
   const [isResopharmaModalOpen, setIsResopharmaModalOpen] = useState(false);
   const [isSyncingResopharma, setIsSyncingResopharma] = useState(false);
+
+  // Purchasing Price Variations & Laboratory Tariff Alert State
+  const [priceVariations, setPriceVariations] = useState<PurchasePriceVariation[]>(MOCK_PURCHASE_PRICE_VARIATIONS);
+
+  // Commercial Discounts & RFA (Remises de Fin d'Année) Audit State
+  const [discountContracts, setDiscountContracts] = useState<SupplierRfaContract[]>(MOCK_SUPPLIER_RFA_CONTRACTS);
+
+  // Annual CPA Balance Sheet & Interfimo Valuation State
+  const [annualCpaReports, setAnnualCpaReports] = useState<AnnualCpaReport[]>(MOCK_ANNUAL_CPA_REPORTS);
 
   // UI modals & indicators
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -633,6 +660,62 @@ export default function App() {
       reason: 'Réception télétransmission fichier EDI LCR Banque'
     });
     showToast(`Relevé LCR ${newStatement.lcrNumber} (${newStatement.supplierName}) importé.`);
+  };
+
+  // Batch Auto-Lettrage verification handler
+  const handleBatchVerifyInvoices = (matchesToApply: { statementId: string; invoiceId: string }[]) => {
+    if (matchesToApply.length === 0) return;
+
+    const affectedMap = new Map<string, Set<string>>();
+    matchesToApply.forEach(m => {
+      if (!affectedMap.has(m.statementId)) {
+        affectedMap.set(m.statementId, new Set());
+      }
+      affectedMap.get(m.statementId)!.add(m.invoiceId);
+    });
+
+    let totalAmountApplied = 0;
+    const totalInvoicesCount = matchesToApply.length;
+
+    setLcrStatements(prev => prev.map(s => {
+      if (affectedMap.has(s.id)) {
+        const invoiceIdsToVerify = affectedMap.get(s.id)!;
+        const updatedInvoices = s.invoices.map(inv => {
+          if (invoiceIdsToVerify.has(inv.id)) {
+            totalAmountApplied += inv.amountTtc;
+            return { ...inv, verified: true };
+          }
+          return inv;
+        });
+
+        const verifiedCount = updatedInvoices.filter(i => i.verified).length;
+        const totalCount = updatedInvoices.length;
+        const newScore = totalCount > 0 ? Math.round((verifiedCount / totalCount) * 100) : 100;
+        
+        return {
+          ...s,
+          invoices: updatedInvoices,
+          reconciliationScore: newScore,
+          status: (newScore === 100 && s.status === 'a_controler') ? 'bon_a_payer' : s.status
+        };
+      }
+      return s;
+    }));
+
+    logUserAction({
+      domain: 'lcr_traites',
+      actionType: 'auto_lettrage_lcr',
+      severity: 'info',
+      details: `Auto-lettrage intelligent appliqué : ${totalInvoicesCount} factures pointées avec succès (${affectedMap.size} relevés LCR mis à jour)`,
+      targetEntity: `Auto-Lettrage (${totalInvoicesCount} factures)`,
+      previousValue: 'Factures en attente de pointage',
+      newValue: `Pointage certifié à 100% (Montant total: ${totalAmountApplied.toFixed(2)} €)`,
+      financialImpact: totalAmountApplied,
+      reason: 'Application des règles de tolérance et rapprochement Factur-X / LGO'
+    });
+
+    confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    showToast(`Auto-lettrage réussi : ${totalInvoicesCount} facture(s) rapprochée(s) avec succès.`);
   };
 
   // 1. Bank sync action (Crédit Agricole Open Banking DSP2)
@@ -1331,6 +1414,93 @@ export default function App() {
     handleTestConnector(connectorId);
   };
 
+  // Handlers for Price Variations & Laboratory Tariff Increases
+  const handleUpdateVariationStatus = (id: string, status: PriceVariationStatus, newPublicPrice?: number) => {
+    setPriceVariations(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      return {
+        ...item,
+        status,
+        currentPublicPriceTtc: newPublicPrice !== undefined ? newPublicPrice : item.currentPublicPriceTtc
+      };
+    }));
+
+    if (newPublicPrice !== undefined) {
+      const item = priceVariations.find(v => v.id === id);
+      if (item) {
+        setProducts(prev => prev.map(p => p.cip === item.cip ? { ...p, publicPriceTtc: newPublicPrice } : p));
+      }
+    }
+    
+    logUserAction({
+      domain: 'commandes_achats',
+      actionType: 'pointage_facture',
+      severity: 'info',
+      details: `Mise à jour du statut pour l'alerte variation prix #${id} -> ${status}`,
+      targetEntity: id,
+      previousValue: '',
+      newValue: status,
+      reason: 'Traitement alerte tarifaire pharmacien'
+    });
+
+    showToast("Statut de la variation tarifaire mis à jour.");
+  };
+
+  const handleContestVariation = (variation: PurchasePriceVariation, letterContent: string) => {
+    setPriceVariations(prev => prev.map(v => v.id === variation.id ? { ...v, status: 'en_contestation' } : v));
+
+    logUserAction({
+      domain: 'commandes_achats',
+      actionType: 'pointage_facture',
+      severity: 'warning',
+      details: `Émission d'un courrier de contestation tarifaire pour ${variation.name} auprès de ${variation.laboratory}`,
+      targetEntity: variation.name,
+      previousValue: 'non_traite',
+      newValue: 'en_contestation',
+      reason: 'Hausse excessive du prix d\'achat laboratoire sans préavis'
+    });
+
+    showToast(`Courrier de contestation transmis à ${variation.laboratory}.`);
+    confetti({ particleCount: 35, spread: 60, origin: { y: 0.8 } });
+  };
+
+  // Handlers for Commercial Discounts & RFA Audit
+  const handleClaimDiscountDiscrepancy = (discrepancyId: string, contractId: string) => {
+    setDiscountContracts(prev => prev.map(c => {
+      if (c.id !== contractId) return c;
+      return {
+        ...c,
+        discrepancies: c.discrepancies.map(d => d.id === discrepancyId ? { ...d, status: 'avoir_recu' } : d)
+      };
+    }));
+
+    logUserAction({
+      domain: 'commandes_achats',
+      actionType: 'pointage_facture',
+      severity: 'warning',
+      details: `Émission d'une lettre de réclamation d'avoir pour sous-remise commerciale #${discrepancyId}`,
+      targetEntity: contractId,
+      previousValue: 'a_reclamer',
+      newValue: 'avoir_recu',
+      reason: 'Contrôle des remises commerciales et régularisation RFA'
+    });
+
+    showToast("Réclamation d'avoir envoyée au laboratoire / grossiste.");
+    confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+  };
+
+  const handleReceiveCreditNote = (contractId: string, amount: number) => {
+    setDiscountContracts(prev => prev.map(c => {
+      if (c.id !== contractId) return c;
+      return {
+        ...c,
+        receivedCreditNotesEuros: c.receivedCreditNotesEuros + amount,
+        pendingCreditNotesEuros: Math.max(0, c.pendingCreditNotesEuros - amount)
+      };
+    }));
+    showToast(`Avoir de ${amount.toFixed(2)} € enregistré et déduit avec succès.`);
+  };
+
   const unreadNotifications = notifications.filter(n => !n.isRead);
   const criticalExpiries = products.filter(p => p.daysUntilExpiry <= 30);
   const overdueOrders = orders.filter(o => o.paymentStatus === 'en_retard');
@@ -1339,6 +1509,8 @@ export default function App() {
   const lcrToControlCount = lcrStatements.filter(s => s.status === 'a_controler').length;
   const pendingLcrAmount = lcrStatements.filter(s => s.status !== 'regle_debit').reduce((acc, s) => acc + s.totalAmountDrawn, 0);
   const connectorsDownCount = connectorsHealth.filter(c => c.status === 'down').length;
+  const priceHikesCount = priceVariations.filter(v => v.deltaAmountHt > 0 && v.status === 'non_traite').length;
+  const discountsAnomaliesCount = discountContracts.reduce((acc, c) => acc + c.discrepancies.filter(d => d.status === 'a_reclamer').length, 0);
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
@@ -1382,6 +1554,8 @@ export default function App() {
         lcrToControlCount={lcrToControlCount}
         auditLogsCount={auditLogs.length}
         connectorsDownCount={connectorsDownCount}
+        priceHikesCount={priceHikesCount}
+        discountsAnomaliesCount={discountsAnomaliesCount}
       />
 
       {/* Main Content Area */}
@@ -1433,16 +1607,41 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'variations_prix' && (
+          <PurchasePriceVariationView
+            variations={priceVariations}
+            onUpdateVariationStatus={handleUpdateVariationStatus}
+            onContestVariation={handleContestVariation}
+          />
+        )}
+
+        {activeTab === 'remises_rfa' && (
+          <CommercialDiscountsControlView
+            contracts={discountContracts}
+            onClaimDiscrepancy={handleClaimDiscountDiscrepancy}
+            onReceiveCreditNote={handleReceiveCreditNote}
+          />
+        )}
+
         {activeTab === 'lcr' && (
           <LcrControlView
             statements={lcrStatements}
+            electronicInvoices={electronicInvoices}
+            orders={orders}
             onValidateBap={handleValidateBap}
             onDeclareDispute={handleDeclareDispute}
             onSimulateLcrDebit={handleSimulateLcrDebit}
             onToggleInvoiceVerification={handleToggleInvoiceVerification}
             onImportNewStatement={handleImportStatement}
+            onBatchVerifyInvoices={handleBatchVerifyInvoices}
             currentBankBalance={summary.currentBankBalance}
             onOpenElectronicInvoicingVault={() => setIsElectronicInvoicingModalOpen(true)}
+          />
+        )}
+
+        {activeTab === 'bilan_annuel' && (
+          <AnnualCpaBalanceView
+            reports={annualCpaReports}
           />
         )}
 

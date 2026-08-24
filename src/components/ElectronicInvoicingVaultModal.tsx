@@ -27,7 +27,8 @@ import {
   Eye, 
   TrendingDown, 
   Database,
-  ArrowRight
+  ArrowRight,
+  Wand2
 } from 'lucide-react';
 import { 
   ElectronicInvoice, 
@@ -37,6 +38,7 @@ import {
 } from '../types/electronicInvoicing';
 import { SupplierOrder, ProductStock } from '../types/pharmacy';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
+import { InvoiceAutoCorrectionAssistant } from './InvoiceAutoCorrectionAssistant';
 
 interface ElectronicInvoicingVaultModalProps {
   isOpen: boolean;
@@ -65,7 +67,7 @@ export const ElectronicInvoicingVaultModal: React.FC<ElectronicInvoicingVaultMod
   onAddManualFacturX,
   onUpdateConnectorConfig
 }) => {
-  const [activeTab, setActiveTab] = useState<'invoices' | 'connectors' | 'upload' | 'audit'>('invoices');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'connectors' | 'upload' | 'auto_correction' | 'audit'>('invoices');
   const [selectedVaultFilter, setSelectedVaultFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -283,7 +285,22 @@ export const ElectronicInvoicingVaultModal: React.FC<ElectronicInvoicingVaultMod
             }`}
           >
             <Upload className="w-4 h-4" />
-            <span>Dépôt Factur-X & Import Manuel</span>
+            <span>Dépôt Factur-X & Import</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('auto_correction')}
+            className={`py-3 px-2 border-b-2 flex items-center gap-1.5 whitespace-nowrap transition ${
+              activeTab === 'auto_correction' 
+                ? 'border-indigo-600 text-indigo-700 dark:text-indigo-400 font-black' 
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Wand2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>Assistant IA Saisie & SIREN</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+              Auto-Fix
+            </span>
           </button>
 
           <button
@@ -295,7 +312,7 @@ export const ElectronicInvoicingVaultModal: React.FC<ElectronicInvoicingVaultMod
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Journal de Synchronisation & Conformité</span>
+            <span>Journal & Conformité</span>
           </button>
         </div>
 
@@ -671,7 +688,76 @@ export const ElectronicInvoicingVaultModal: React.FC<ElectronicInvoicingVaultMod
                 </div>
               </div>
 
+              {/* Assistant Banner */}
+              <div className="p-4 bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-indigo-950/40 dark:to-emerald-950/40 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-xs">
+                    <Wand2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                      Assistant IA de Correction Automatique de Saisie
+                    </h4>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                      Détection d'espaces/inversions dans les SIREN, correction des formats de date (MM/DD), validation Luhn et contrôle des délais LME.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('auto_correction')}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs shrink-0 transition"
+                >
+                  Ouvrir l'Assistant IA
+                </button>
+              </div>
+
             </div>
+          )}
+
+          {/* TAB: AUTO CORRECTION ASSISTANT */}
+          {activeTab === 'auto_correction' && (
+            <InvoiceAutoCorrectionAssistant
+              onApplyAndImport={(correctedData) => {
+                const totalHtVal = Number(correctedData.totalHt) || 0;
+                const totalTtcVal = Number(correctedData.totalTtc) || (totalHtVal * 1.021);
+                const totalTvaVal = Number(correctedData.totalTva) || (totalTtcVal - totalHtVal);
+                onImportInvoiceToOrders({
+                  id: `inv_corrected_${Date.now()}`,
+                  invoiceNumber: correctedData.invoiceNumber || 'FAC-CORRIGEE',
+                  originalFilename: `Facture_${correctedData.supplierName || 'Fournisseur'}_Corrigee.pdf`,
+                  supplierName: correctedData.supplierName || 'Fournisseur',
+                  supplierSiren: correctedData.supplierSiren || '000000000',
+                  supplierTvaIntra: correctedData.supplierTvaIntra || 'FR00000000000',
+                  supplierType: 'grossiste',
+                  issueDate: correctedData.issueDate || new Date().toISOString().split('T')[0],
+                  dueDate: correctedData.dueDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+                  totalHt: totalHtVal,
+                  totalTtc: totalTtcVal,
+                  totalTva: totalTvaVal,
+                  tvaBreakdown: [
+                    {
+                      rate: 2.1,
+                      baseHt: totalHtVal,
+                      tvaAmount: totalTvaVal
+                    }
+                  ],
+                  discountAmount: 0,
+                  rfaBonus: totalHtVal * 0.025,
+                  status: 'rapprochee_commande',
+                  paymentStatus: 'a_payer',
+                  vaultSource: 'cegedim_sy',
+                  vaultSourceName: 'Saisie Assistée IA',
+                  pdpCertificationId: `AUTO-FIX-${Date.now()}`,
+                  signatureTimestamp: new Date().toISOString(),
+                  electronicSignatureValid: true,
+                  facturXProfile: 'MINIMUM',
+                  linesCount: 1,
+                  hasDiscrepancy: false,
+                  items: []
+                });
+                setActiveTab('invoices');
+              }}
+            />
           )}
 
           {/* TAB 4: AUDIT & SYNC LOGS */}

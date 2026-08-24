@@ -72,6 +72,48 @@ export interface LcrStatement {
   debitTransactionId?: string;
 }
 
+export interface LcrAutoMatchRulesConfig {
+  amountToleranceEuros: number; // Ex: 0.05 € (tolérance centimes / arrondi TVA)
+  dueDateToleranceDays: number; // Ex: 5 jours (tolérance décalage date émission/échéance)
+  supplierNameFuzzyMatch: boolean; // Correspondance fournisseur insensible casse/forme juridique
+  allowDeliverySlipMatch: boolean; // Autoriser rapprochement par N° de BL (Bon de Livraison)
+  minConfidenceScore: number; // Seuil de score minimal pour proposer (ex: 80%)
+  autoSelectExactMatches: boolean; // Pré-sélectionner automatiquement les correspondances à 100%
+  
+  // Paramètres d'alerte d'erreurs
+  anomalyAlertThreshold: number; // Seuil d'anomalies (ex: 3) déclenchant l'alerte visuelle
+  evaluationPeriodDays: number; // Période d'évaluation en jours (ex: 30 jours)
+}
+
+export const DEFAULT_LCR_RULES_CONFIG: LcrAutoMatchRulesConfig = {
+  amountToleranceEuros: 0.05,
+  dueDateToleranceDays: 5,
+  supplierNameFuzzyMatch: true,
+  allowDeliverySlipMatch: true,
+  minConfidenceScore: 80,
+  autoSelectExactMatches: true,
+  anomalyAlertThreshold: 3,
+  evaluationPeriodDays: 30
+};
+
+export interface LcrMatchAnomaly {
+  id: string;
+  statementId: string;
+  statementLcrNumber: string;
+  statementSupplierName: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  expectedAmountTtc: number;
+  candidateSource: string;
+  candidateReference?: string;
+  candidateAmountTtc?: number;
+  amountDifference: number;
+  dateDifferenceDays: number;
+  anomalyType: 'amount_out_of_tolerance' | 'date_out_of_tolerance' | 'missing_counterpart' | 'unrecognized_reference';
+  detectedAt: string;
+  suggestedAction: string;
+}
+
 export interface LcrAutoMatchProposal {
   id: string;
   statementId: string;
@@ -88,10 +130,13 @@ export interface LcrAutoMatchProposal {
   matchedSourceName: string;
   matchedReference: string; // N° Facture ou N° BL trouvé dans la source
   matchedAmountTtc: number;
+  amountDifference: number; // Différence (0.00 ou dans la tolérance)
+  dateDifferenceDays: number;
   matchedSupplier: string;
   matchScore: number; // 0 - 100%
   matchConfidence: 'exact_perfect' | 'high_confidence' | 'probable';
   matchReason: string; // Ex: "Montant TTC 6 387,24 € et Réf. 9702086525 identiques à la facture Factur-X PDP"
+  isWithinTolerance: boolean;
   alreadyVerified: boolean;
   selectedForApplication: boolean;
 }
@@ -100,10 +145,13 @@ export interface LcrAutoMatchResult {
   totalProposals: number;
   unverifiedProposalsCount: number;
   exactMatchesCount: number;
-  highConfidenceCount: number;
+  toleranceMatchesCount: number;
   totalAmountMatchedTtc: number;
   statementsImpactedCount: number;
   proposals: LcrAutoMatchProposal[];
+  anomalies: LcrMatchAnomaly[];
+  anomaliesCount: number;
+  isAlertThresholdExceeded: boolean;
 }
 
 export interface LcrKpiSummary {

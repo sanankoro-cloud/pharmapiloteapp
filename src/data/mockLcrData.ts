@@ -2,6 +2,138 @@ import { LcrStatement } from '../types/lcr';
 
 export const MOCK_LCR_STATEMENTS: LcrStatement[] = [
   {
+    id: 'lcr-ocp-2026-08',
+    lcrNumber: 'LCR-OCP-2026-08-31',
+    supplierName: 'OCP Répartition (Grossiste Répartiteur)',
+    supplierSiren: '562 092 110',
+    supplierType: 'grossiste',
+    periodLabel: 'Relevé Quinzaine du 01 au 15 Août 2026',
+    issueDate: '2026-08-16',
+    dueDate: '2026-08-31',
+    rejectionDeadlineDate: '2026-08-28',
+    totalAmountDrawn: 24541.09,
+    calculatedAmountInvoices: 24541.09,
+    totalCreditNotes: 0.00,
+    discrepancyAmount: 0.00,
+    status: 'a_controler',
+    reconciliationScore: 33,
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609',
+    bankPreNotificationReceived: true,
+    invoices: [
+      {
+        id: 'inv-ocp-01',
+        invoiceNumber: 'FAC-OCP-8829101',
+        deliverySlipNumber: 'BL-OCP-88291',
+        issueDate: '2026-08-04',
+        amountHt: 7840.50,
+        amountTtc: 8624.55,
+        itemsCount: 320,
+        verified: false,
+        matchedStockReception: true,
+        notes: 'Livraison quotidienne pharmacie - Commande LGO WinPharma #ord-ocp-8829101'
+      },
+      {
+        id: 'inv-ocp-02',
+        invoiceNumber: 'FAC-OCP-8831940',
+        deliverySlipNumber: 'BL-OCP-88319',
+        issueDate: '2026-08-09',
+        amountHt: 8950.20,
+        amountTtc: 9845.22,
+        itemsCount: 410,
+        verified: false,
+        matchedStockReception: true,
+        notes: 'Écart de centimes minime (9 845,20 € en LGO vs 9 845,22 € sur traite) - Écart de 0.02 € dans la tolérance'
+      },
+      {
+        id: 'inv-ocp-03',
+        invoiceNumber: '9702086525',
+        deliverySlipNumber: 'BL-8121266777',
+        issueDate: '2026-08-14',
+        amountHt: 5952.32,
+        amountTtc: 6071.32,
+        itemsCount: 15,
+        verified: true,
+        matchedStockReception: true,
+        facturXId: 'FX-PFIZER-9702086525',
+        notes: 'Spécialités hospitalières dépositaire - Factur-X certifiée'
+      }
+    ],
+    creditNotes: []
+  },
+  {
+    id: 'lcr-alliance-2026-08',
+    lcrNumber: 'LCR-AHF-2026-08-31',
+    supplierName: 'Alliance Healthcare France (Grossiste)',
+    supplierSiren: '349 970 828',
+    supplierType: 'grossiste',
+    periodLabel: 'Relevé Quinzaine du 01 au 15 Août 2026',
+    issueDate: '2026-08-16',
+    dueDate: '2026-08-31',
+    rejectionDeadlineDate: '2026-08-28',
+    totalAmountDrawn: 6799.61,
+    calculatedAmountInvoices: 6799.61,
+    totalCreditNotes: 0.00,
+    discrepancyAmount: 0.00,
+    status: 'a_controler',
+    reconciliationScore: 0,
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609',
+    bankPreNotificationReceived: true,
+    invoices: [
+      {
+        id: 'inv-ahf-01',
+        invoiceNumber: 'FAC-CERP-7225202',
+        deliverySlipNumber: 'BL-AHF-99120',
+        issueDate: '2026-08-10',
+        amountHt: 6181.46,
+        amountTtc: 6799.61,
+        itemsCount: 180,
+        verified: false,
+        matchedStockReception: true,
+        facturXId: 'FX-CERP-7225202',
+        notes: 'Rapprochement Factur-X PDP certifiée SY by Cegedim'
+      }
+    ],
+    creditNotes: []
+  },
+  {
+    id: 'lcr-urgo-2026-08',
+    lcrNumber: 'LCR-URGO-2026-08-25',
+    supplierName: 'Laboratoires URGO Medical',
+    supplierSiren: '433 842 044',
+    supplierType: 'laboratoire_direct',
+    periodLabel: 'Approvisionnement Pansements Spécifiques & Cicatrisation',
+    issueDate: '2026-08-05',
+    dueDate: '2026-08-25',
+    rejectionDeadlineDate: '2026-08-23',
+    totalAmountDrawn: 2450.00,
+    calculatedAmountInvoices: 2120.00,
+    totalCreditNotes: 0.00,
+    discrepancyAmount: 330.00,
+    status: 'litige_partiel',
+    reconciliationScore: 0,
+    bankAccount: 'Crédit Agricole Anjou Maine FR76 1790 6001 1296 4141 1923 609',
+    bankPreNotificationReceived: true,
+    discrepancyReasons: [
+      'Avoir commercial de 330,00 € TTC promis sur commande d\'implantation non déduit sur la traite LCR',
+      'Écart de montant constaté : 2 450,00 € tirés vs 2 120,00 € de factures reçues'
+    ],
+    invoices: [
+      {
+        id: 'inv-urgo-01',
+        invoiceNumber: 'FAC-URGO-2026-551',
+        deliverySlipNumber: 'BL-URGO-8812',
+        issueDate: '2026-08-05',
+        amountHt: 2041.67,
+        amountTtc: 2450.00,
+        itemsCount: 65,
+        verified: false,
+        matchedStockReception: true,
+        notes: 'Écart de 330,00 € TTC hors tolérance (2 450,00 € demandés vs 2 120,00 € convenus)'
+      }
+    ],
+    creditNotes: []
+  },
+  {
     id: 'lcr-ca-00000663',
     lcrNumber: 'RELEVE-CA-00000663',
     supplierName: 'Relevé d\'Effets Groupés Crédit Agricole (Pfizer, Welcoop, CSP, SM Europe)',
