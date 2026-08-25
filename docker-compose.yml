@@ -5,11 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_GENAI_KEY: ${VITE_GOOGLE_GENAI_KEY}
     container_name: pharmapilote-app
     ports:
       - "3000:3000"
     environment:
-      - VITE_GOOGLE_GENAI_KEY=${VITE_GOOGLE_GENAI_KEY}
       - NODE_ENV=production
     restart: unless-stopped
     networks:
@@ -18,11 +19,3 @@ services:
 networks:
   pharmapilote-network:
     driver: bridge
-services:
-  pharmapilote:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        VITE_GOOGLE_GENAI_KEY: ${VITE_GOOGLE_GENAI_KEY}
-    # ...
