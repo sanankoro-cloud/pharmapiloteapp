@@ -18,3 +18,11 @@ services:
 networks:
   pharmapilote-network:
     driver: bridge
+services:
+  pharmapilote:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_GENAI_KEY: ${VITE_GOOGLE_GENAI_KEY}
+    # ...
