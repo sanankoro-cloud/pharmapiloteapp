@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pharmapilote:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pharmapilote-app
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_GOOGLE_GENAI_KEY=${VITE_GOOGLE_GENAI_KEY}
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - pharmapilote-network
+
+networks:
+  pharmapilote-network:
+    driver: bridge
