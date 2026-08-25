@@ -12,10 +12,10 @@ RUN npm install
 # Copier le code source
 COPY . .
 
-# Build-time arg to inject the Vite public variable into the builder environment
+# Build-time arg (disponible pour la commande de build mais non exporté)
 ARG VITE_GOOGLE_GENAI_KEY
 
-# Use the ARG only for the build command to avoid persisting the secret in image layers
+# Utiliser l'ARG uniquement pour la commande de build (évite d'écrire l'ENV dans l'image)
 RUN VITE_GOOGLE_GENAI_KEY="$VITE_GOOGLE_GENAI_KEY" npm run build
 
 # Stage 2: Runtime
