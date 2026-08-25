@@ -488,7 +488,7 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
 
           {/* Contextual Recommendation Banner */}
           {healthStatus.level === 'rouge' ? (
-            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex items-start justify-between gap-3">
+            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                 <div>
@@ -501,24 +501,46 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
                 </div>
               </div>
 
-              {onNavigateTab && (
-                <button
-                  onClick={() => onNavigateTab('surveillance_marges')}
-                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs shrink-0 transition flex items-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Résoudre</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {onNavigateTab && (
+                  <>
+                    <button
+                      onClick={() => onNavigateTab('surveillance_marges')}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Résoudre</span>
+                    </button>
+                    <button
+                      onClick={() => onNavigateTab('remises_commerciales')}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Prévision Fin d'Année</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
                   <strong>Rentabilité sous contrôle :</strong> La catégorie respecte les objectifs de marge brute et l'alignement sur la moyenne mobile 3 mois.
                 </span>
               </div>
+
+              {onNavigateTab && (
+                <button
+                  onClick={() => onNavigateTab('remises_commerciales')}
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-bold shadow-2xs shrink-0 transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Calcul Prédictif Fin d'Année (87% Atteinte)</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
           )}
 

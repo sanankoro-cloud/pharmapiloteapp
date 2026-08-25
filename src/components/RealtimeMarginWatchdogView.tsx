@@ -27,7 +27,9 @@ import {
   ShoppingBag,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Layers,
+  Pill
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -59,6 +61,7 @@ import {
 } from '../data/mockMarginWatchdog';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { CustomMarginRulesManager } from './CustomMarginRulesManager';
+import { ProductMarginTherapeuticDashboard } from './ProductMarginTherapeuticDashboard';
 
 interface RealtimeMarginWatchdogViewProps {
   onNavigateTab?: (tab: string) => void;
@@ -69,6 +72,9 @@ export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProp
   onNavigateTab,
   onTriggerPushNotification
 }) => {
+  // Main view switcher: Watchdog Live vs Dashboard Marges par Produit & Classes Thérapeutiques
+  const [activeViewMode, setActiveViewMode] = useState<'product_margins' | 'watchdog_live'>('product_margins');
+
   // State for margin status list
   const [categories, setCategories] = useState<CategoryMarginStatus[]>(MOCK_CATEGORY_MARGINS);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('parapharmacie');
@@ -421,58 +427,110 @@ export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProp
   return (
     <div className="space-y-6">
       
-      {/* Top Banner: Real-time Live Engine & Quick Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 shadow-xs">
-              <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
+      {/* Top Primary View Mode Selector Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            onClick={() => setActiveViewMode('product_margins')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'product_margins'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Layers className={`w-4 h-4 ${activeViewMode === 'product_margins' ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+            <span>Marges par Produit & Classes Thérapeutiques</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+              activeViewMode === 'product_margins' ? 'bg-white text-indigo-700' : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+            }`}>
+              10 Classes • Analyse DCI
             </span>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                Surveillance des Marges en Temps Réel
-              </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Live Feed Actif ({lastScanTimestamp})
+          </button>
+
+          <button
+            onClick={() => setActiveViewMode('watchdog_live')}
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black transition flex items-center gap-2 cursor-pointer ${
+              activeViewMode === 'watchdog_live'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-900/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <ShieldAlert className={`w-4 h-4 ${activeViewMode === 'watchdog_live' ? 'text-white' : 'text-rose-600'}`} />
+            <span>Surveillance Live & Alertes MM3M</span>
+            {criticalAlertCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                {criticalAlertCount} Alerte
               </span>
-            </div>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Détection automatique et alertes immédiates en cas de chute de marge brute supérieure à <strong>{config.dropThresholdPoints}%</strong> par rapport à la moyenne mobile des 3 derniers mois (MM3M).
-          </p>
+            )}
+          </button>
         </div>
 
-        {/* Action controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => {
-              const el = document.getElementById('custom-rules-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs font-bold shadow-xs transition"
-          >
-            <Bell className="w-4 h-4 text-rose-600" />
-            <span>Règles d'Alerte Push ({customRules.filter(r => r.isEnabled).length})</span>
-          </button>
-
-          <button
-            onClick={() => setIsConfigOpen(!isConfigOpen)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs transition"
-          >
-            <Sliders className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <span>Seuils & Paramètres ({config.dropThresholdPoints}%)</span>
-          </button>
-
-          <button
-            onClick={handleExportCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs transition"
-          >
-            <Download className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <span>Export Audit CSV</span>
-          </button>
+        <div className="flex items-center gap-2 px-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span>Mise à jour LGO : {lastScanTimestamp}</span>
         </div>
       </div>
+
+      {/* VIEW 1: DEDICATED PRODUCT MARGIN & THERAPEUTIC CLASS DASHBOARD */}
+      {activeViewMode === 'product_margins' && (
+        <ProductMarginTherapeuticDashboard onNavigateTab={onNavigateTab} />
+      )}
+
+      {/* VIEW 2: REAL-TIME WATCHDOG & LIVE MM3M ANOMALY FEED */}
+      {activeViewMode === 'watchdog_live' && (
+        <div className="space-y-6">
+          {/* Top Banner: Real-time Live Engine & Quick Stats */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900 shadow-xs">
+                  <ShieldAlert className="w-5 h-5 text-rose-600 animate-pulse" />
+                </span>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                    Surveillance des Marges en Temps Réel
+                  </h1>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    Live Feed Actif ({lastScanTimestamp})
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Détection automatique et alertes immédiates en cas de chute de marge brute supérieure à <strong>{config.dropThresholdPoints}%</strong> par rapport à la moyenne mobile des 3 derniers mois (MM3M).
+              </p>
+            </div>
+
+            {/* Action controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  const el = document.getElementById('custom-rules-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs font-bold shadow-xs transition"
+              >
+                <Bell className="w-4 h-4 text-rose-600" />
+                <span>Règles d'Alerte Push ({customRules.filter(r => r.isEnabled).length})</span>
+              </button>
+
+              <button
+                onClick={() => setIsConfigOpen(!isConfigOpen)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs transition"
+              >
+                <Sliders className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <span>Seuils & Paramètres ({config.dropThresholdPoints}%)</span>
+              </button>
+
+              <button
+                onClick={handleExportCsv}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-xs transition"
+              >
+                <Download className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <span>Export Audit CSV</span>
+              </button>
+            </div>
+          </div>
 
       {/* Success Notification Alert */}
       {actionSuccessMsg && (
@@ -1085,6 +1143,9 @@ export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProp
           onTestRulePush={handleTestRulePush}
         />
       </div>
+
+        </div>
+      )}
 
     </div>
   );

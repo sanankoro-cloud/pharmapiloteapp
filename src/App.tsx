@@ -1074,6 +1074,93 @@ export default function App() {
     showToast(`${imported.length} références importées avec succès.`);
   };
 
+  // Predictive stockout reorder handler
+  const handleCreatePredictiveSupplierOrder = (orderItems: Array<{ product: ProductStock; quantity: number }>, supplierName: string) => {
+    if (orderItems.length === 0) return;
+
+    const totalHt = orderItems.reduce((sum, item) => sum + (item.quantity * item.product.pump), 0);
+    const totalTtc = orderItems.reduce((sum, item) => {
+      const vatMultiplier = 1 + (item.product.tva / 100);
+      return sum + (item.quantity * item.product.pump * vatMultiplier);
+    }, 0);
+
+    const orderNumber = `CMD-PREDICT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    const newOrder: SupplierOrder = {
+      id: `ord-pred-${Date.now()}`,
+      orderNumber,
+      supplierName: supplierName || 'OCP Répartition',
+      supplierType: supplierName.toLowerCase().includes('direct') ? 'laboratoire_direct' : 'grossiste',
+      orderDate: todayStr,
+      deliveryDate: todayStr,
+      status: 'validee',
+      itemsCount: orderItems.length,
+      totalHt: Number(totalHt.toFixed(2)),
+      totalTtc: Number(totalTtc.toFixed(2)),
+      discountPercentage: 2.5,
+      commercialBonus: 0,
+      paymentDueDate: dueDate.toISOString().split('T')[0],
+      paymentStatus: 'a_payer'
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
+    setSummary(prev => ({
+      ...prev,
+      pendingSupplierPayables: prev.pendingSupplierPayables + newOrder.totalTtc
+    }));
+
+    logUserAction({
+      domain: 'commandes_achats',
+      actionType: 'pointage_facture',
+      severity: 'info',
+      details: `Génération automatique commande réassort prédictif ${orderNumber} (${orderItems.length} lignes - ${newOrder.totalTtc.toFixed(2)} € TTC)`,
+      targetEntity: `Commande Prédictive ${orderNumber} (${newOrder.supplierName})`,
+      previousValue: 'Alerte rupture imminente',
+      newValue: `Bon de réassort généré (${newOrder.totalTtc.toFixed(2)} € TTC)`,
+      financialImpact: newOrder.totalTtc,
+      reason: 'Anticipation prédictive des ruptures sur produits essentiels / MITM'
+    });
+
+    confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    showToast(`Bon de commande réassort ${orderNumber} généré (${orderItems.length} références - ${newOrder.totalTtc.toFixed(2)} € TTC).`);
+  };
+
+  // Adjust stock thresholds handler
+  const handleAdjustStockThresholds = (productId: string, newMin: number, newMax: number) => {
+    const targetProduct = products.find(p => p.id === productId);
+
+    setProducts(prev => prev.map(p => {
+      if (p.id === productId) {
+        return {
+          ...p,
+          minThreshold: newMin,
+          maxThreshold: newMax,
+          status: p.stockQty <= newMin ? 'low_stock' : 'optimal'
+        };
+      }
+      return p;
+    }));
+
+    if (targetProduct) {
+      logUserAction({
+        domain: 'stocks',
+        actionType: 'ajustement_quantite',
+        severity: 'info',
+        details: `Mise à jour des seuils d'alerte pour "${targetProduct.name}" : Min ${targetProduct.minThreshold} -> ${newMin}, Max ${targetProduct.maxThreshold} -> ${newMax}`,
+        targetEntity: targetProduct.name,
+        previousValue: `Min: ${targetProduct.minThreshold} / Max: ${targetProduct.maxThreshold}`,
+        newValue: `Min: ${newMin} / Max: ${newMax}`,
+        financialImpact: 0,
+        reason: 'Recalibrage du seuil de sécurité prédictif'
+      });
+    }
+
+    showToast(`Seuils de sécurité mis à jour pour ${targetProduct?.name || 'le produit'}.`);
+  };
+
   // Transaction handlers
   const handleAddNewTransaction = (newTxData: Omit<BankTransaction, 'id'>) => {
     const newTx: BankTransaction = {
@@ -1447,6 +1534,47 @@ export default function App() {
     showToast("Statut de la variation tarifaire mis à jour.");
   };
 
+  const handleApplyBatchSimulatedPrices = (updatedVariations: { id: string; newPublicPriceTtc: number }[]) => {
+    const updatedMap = new Map(updatedVariations.map(u => [u.id, u.newPublicPriceTtc]));
+
+    setPriceVariations(prev => prev.map(item => {
+      if (updatedMap.has(item.id)) {
+        const newPrice = updatedMap.get(item.id)!;
+        return {
+          ...item,
+          status: 'prix_vente_ajuste' as PriceVariationStatus,
+          currentPublicPriceTtc: newPrice,
+          notes: `Prix répercuté à ${newPrice.toFixed(2)} € TTC (simulation marge appliquée le ${new Date().toLocaleDateString('fr-FR')})`
+        };
+      }
+      return item;
+    }));
+
+    // Synchronize products stock list with new public prices
+    setProducts(prev => prev.map(p => {
+      const matching = priceVariations.find(v => v.cip === p.cip && updatedMap.has(v.id));
+      if (matching) {
+        const newPrice = updatedMap.get(matching.id)!;
+        return { ...p, publicPriceTtc: newPrice };
+      }
+      return p;
+    }));
+
+    logUserAction({
+      domain: 'commandes_achats',
+      actionType: 'pointage_facture',
+      severity: 'info',
+      details: `Application en masse de ${updatedVariations.length} prix de vente simulés pour restaurer la marge officinale`,
+      targetEntity: `${updatedVariations.length} produits`,
+      previousValue: 'Anciens prix publics',
+      newValue: 'Nouveaux prix publics TTC synchronisés en caisse LGO',
+      reason: 'Répercussion des hausses tarifs d\'achat'
+    });
+
+    confetti({ particleCount: 50, spread: 70, origin: { y: 0.7 } });
+    showToast(`${updatedVariations.length} prix de vente public mis à jour et synchronisés en caisse.`);
+  };
+
   const handleContestVariation = (variation: PurchasePriceVariation, letterContent: string) => {
     setPriceVariations(prev => prev.map(v => v.id === variation.id ? { ...v, status: 'en_contestation' } : v));
 
@@ -1636,6 +1764,7 @@ export default function App() {
             variations={priceVariations}
             onUpdateVariationStatus={handleUpdateVariationStatus}
             onContestVariation={handleContestVariation}
+            onApplyBatchSimulatedPrices={handleApplyBatchSimulatedPrices}
           />
         )}
 
@@ -1678,6 +1807,8 @@ export default function App() {
             onDeleteProduct={handleDeleteProduct}
             onAdjustStockQty={handleAdjustStockQty}
             onImportBulkProducts={handleImportBulkProducts}
+            onCreateSupplierOrder={handleCreatePredictiveSupplierOrder}
+            onAdjustStockThresholds={handleAdjustStockThresholds}
           />
         )}
 

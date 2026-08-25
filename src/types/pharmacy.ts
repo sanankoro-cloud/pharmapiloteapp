@@ -32,6 +32,134 @@ export interface ProductStock {
   daysUntilExpiry: number;
   status: 'optimal' | 'low_stock' | 'critical_stock' | 'near_expiry' | 'expired';
   isRefrigerated?: boolean;
+  monthlySalesQty?: number; // Ventes mensuelles moyennes (unités)
+  lastSaleDate?: string; // Date de dernière sortie/dispensation
+  abcClass?: 'A' | 'B' | 'C'; // Classification Pareto ABC
+  stockDaysCoverage?: number; // Jours de couverture de stock
+  supplier?: string; // Grossiste / Fournisseur principal (ex: OCP, Phoenix, Direct Labo)
+  isHighValue?: boolean; // Haute valeur / Coffre sécurisé
+  isDormant?: boolean; // Stock dormant / Surstock > 90 jours
+  isEssential?: boolean; // MITM - Médicament d'Intérêt Thérapeutique Majeur / Produit Vital
+  dailySalesRate?: number; // Vitesse de sortie moyenne quotidienne (boîtes/jour)
+  salesTrendPct?: number; // Tendance d'accélération des ventes récentes vs N-1 (+25%, -10%, etc.)
+  leadTimeDays?: number; // Délai d'approvisionnement fournisseur en jours (0.5j grossiste, 5j direct)
+  reorderPoint?: number; // Seuil de commande prédictif calculé (ROP)
+  suggestedReorderQty?: number; // Quantité de réassort optimale calculée
+}
+
+export type StockoutSeverity = 'critical_imminent' | 'warning_reorder' | 'watch_trend' | 'healthy';
+
+export interface StockoutPrediction {
+  productId: string;
+  product: ProductStock;
+  currentStock: number;
+  minThreshold: number;
+  maxThreshold: number;
+  dailyVelocity: number; // Boîtes vendues par jour
+  salesTrendPct: number; // % variation récente
+  leadTimeDays: number; // Délai livraison
+  safetyStockDays: number; // Marge de sécurité
+  daysUntilCriticalThreshold: number; // Jours restants avant de toucher le seuil mini
+  daysUntilStockout: number; // Jours restants avant stock 0 (rupture sèche)
+  predictedThresholdDate: string; // Date estimée franchissement seuil mini
+  predictedStockoutDate: string; // Date estimée rupture 0
+  urgencyLevel: StockoutSeverity;
+  urgencyScore: number; // 0 (sûr) à 100 (urgence absolue)
+  recommendedReorderQty: number; // Quantité recommandée à commander
+  reorderCostPumpHt: number; // Coût d'achat du réassort (€ HT)
+  potentialLostRevenueHt: number; // CA hebdomadaire menacé par la rupture (€ HT)
+  isEssential: boolean; // MITM / Traitement vital
+  isRefrigerated: boolean;
+  abcClass: 'A' | 'B' | 'C';
+  supplierName: string;
+  supplierType: 'grossiste' | 'laboratoire_direct';
+  hasAvailableGenericAlternative: boolean;
+  genericAlternativesCount: number;
+  riskReason: string; // Explication pédagogique pour le pharmacien
+}
+
+export interface PredictiveAlertsSummary {
+  totalAnalyzed: number;
+  totalAlerts: number;
+  criticalImminentCount: number; // < 3 jours
+  warningReorderCount: number; // 3 - 7 jours
+  watchTrendCount: number; // 8 - 14 jours
+  healthyCount: number;
+  essentialAtRiskCount: number; // MITM menacés
+  totalPotentialLostRevenueHt: number; // CA menacé
+  totalReorderBudgetHt: number; // Budget réassort préconisé
+  averageCoverageDaysEssential: number;
+  reorderSuggestionLinesCount: number;
+}
+
+export interface StockCategoryStats {
+  category: ProductCategory;
+  categoryLabel: string;
+  tvaRate: ProductTva;
+  productCount: number;
+  totalUnits: number;
+  totalValuePumpHt: number;
+  totalRetailValueTtc: number;
+  potentialMarginHt: number;
+  marginRatePct: number;
+  shareOfStockPct: number;
+  color: string;
+}
+
+export interface StockAbcStats {
+  classA: {
+    count: number;
+    valueHt: number;
+    pctValue: number;
+    pctItems: number;
+    description: string;
+  };
+  classB: {
+    count: number;
+    valueHt: number;
+    pctValue: number;
+    pctItems: number;
+    description: string;
+  };
+  classC: {
+    count: number;
+    valueHt: number;
+    pctValue: number;
+    pctItems: number;
+    description: string;
+  };
+}
+
+export interface StockTurnoverStats {
+  averageTurnoverRate: number; // Ex: 8.4 rotations/an
+  averageDaysCoverage: number; // Ex: 43 jours
+  fastMoversCount: number; // < 20 jours
+  optimalMoversCount: number; // 20 - 45 jours
+  slowMoversCount: number; // 45 - 90 jours
+  dormantStockCount: number; // > 90 jours
+  dormantStockValueHt: number; // Valeur HT immobilisée en dormant
+  serviceRatePct: number; // Taux de service / Disponibilité (ex: 97.4%)
+  stockoutRiskCount: number; // Produits en rupture ou sous-seuil
+}
+
+export interface StockExpiryRiskStats {
+  under30DaysCount: number;
+  under30DaysValueHt: number;
+  under60DaysCount: number;
+  under60DaysValueHt: number;
+  under90DaysCount: number;
+  under90DaysValueHt: number;
+  safeCount: number;
+  safeValueHt: number;
+  totalAtRiskValueHt: number;
+}
+
+export interface LaboratoryStockStats {
+  laboratory: string;
+  itemsCount: number;
+  totalUnits: number;
+  totalValueHt: number;
+  sharePct: number;
 }
 
 export interface SupplierOrder {

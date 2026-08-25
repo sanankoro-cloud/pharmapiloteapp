@@ -7,6 +7,13 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+export function formatNumber(value: number, maximumFractionDigits: number = 0): string {
+  return new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits
+  }).format(value);
+}
+
 export function formatPercent(value: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'percent',

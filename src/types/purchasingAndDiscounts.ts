@@ -92,3 +92,79 @@ export interface PriceAlertFilterConfig {
   minDeltaPct: number;
   onlyUnprocessed: boolean;
 }
+
+export interface PriceHistoryPoint {
+  date: string;
+  priceHt: number;
+  invoiceRef: string;
+  invoiceType: 'direct_labo' | 'grossiste_repartition' | 'tarif_catalogue';
+  discountRatePct: number;
+  netPriceHt: number;
+  publicPriceTtc: number;
+  marginRatePct: number;
+  comment?: string;
+}
+
+export type NegotiationStatus = 
+  | 'a_negocier' 
+  | 'en_cours' 
+  | 'remise_obtenue' 
+  | 'refuse_par_labo' 
+  | 'substitue';
+
+export interface ProductPriceHistory {
+  cip: string;
+  name: string;
+  dci?: string;
+  category: ProductCategory;
+  laboratory: string;
+  supplier: string;
+  annualVolumeUnits: number;
+  currentPriceHt: number;
+  basePriceHtNMinus1: number;
+  totalVariationPct: number;
+  totalAnnualExtraCostEuros: number;
+  marginErosionPts: number;
+  currentMarginPct: number;
+  targetMarginPct: number;
+  currentPublicPriceTtc: number;
+  suggestedPublicPriceTtc: number;
+  historyPoints: PriceHistoryPoint[];
+  negotiationStatus: NegotiationStatus;
+  requestedCompensationRatePct: number;
+  requestedCreditNoteEuros: number;
+  substituteAlternative?: {
+    cip: string;
+    name: string;
+    laboratory: string;
+    priceHt: number;
+    estimatedSavings: number;
+  };
+  laboJustification?: string;
+}
+
+export interface SupplierPriceHistorySummary {
+  supplierId: string;
+  supplierName: string;
+  supplierType: 'laboratoire_direct' | 'grossiste' | 'groupement';
+  contactCommercial?: {
+    name: string;
+    role: string;
+    email: string;
+    phone: string;
+    lastMeetingDate?: string;
+    nextMeetingDate?: string;
+  };
+  annualPurchasesVolumeHt: number;
+  totalReferencesCount: number;
+  hikesReferencesCount: number;
+  decreasesReferencesCount: number;
+  averagePriceHikePct: number;
+  totalAnnualOvercostEuros: number;
+  totalMarginErosionPts: number;
+  negotiationPriority: 'urgente' | 'haute' | 'moderee' | 'faible';
+  suggestedRemiseCompensationPct: number;
+  products: ProductPriceHistory[];
+  negotiationNotes?: string;
+}
+

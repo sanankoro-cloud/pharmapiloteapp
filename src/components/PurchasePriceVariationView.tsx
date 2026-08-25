@@ -21,29 +21,39 @@ import {
   Layers,
   ShoppingBag,
   Clock,
-  X
+  X,
+  Calculator,
+  Sliders,
+  Euro
 } from 'lucide-react';
 import { PurchasePriceVariation, PriceVariationSeverity, PriceVariationStatus } from '../types/purchasingAndDiscounts';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
+import { SupplierPriceHistoryView } from './SupplierPriceHistoryView';
+import { PricePassThroughSimulatorView } from './PricePassThroughSimulatorView';
 import confetti from 'canvas-confetti';
 
 interface PurchasePriceVariationViewProps {
   variations: PurchasePriceVariation[];
   onUpdateVariationStatus?: (id: string, newStatus: PriceVariationStatus, newPublicPrice?: number) => void;
   onContestVariation?: (variation: PurchasePriceVariation, letterContent: string) => void;
+  onApplyBatchSimulatedPrices?: (updatedVariations: { id: string; newPublicPriceTtc: number }[]) => void;
 }
 
 export const PurchasePriceVariationView: React.FC<PurchasePriceVariationViewProps> = ({
   variations,
   onUpdateVariationStatus,
-  onContestVariation
+  onContestVariation,
+  onApplyBatchSimulatedPrices
 }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'alertes' | 'simulateur_marge' | 'historique_fournisseur'>('alertes');
   const [items, setItems] = useState<PurchasePriceVariation[]>(variations);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedLabo, setSelectedLabo] = useState<string>('all');
   const [minDeltaPct, setMinDeltaPct] = useState<number>(0);
+  const [isLiveSimMode, setIsLiveSimMode] = useState<boolean>(false);
+  const [quickSimStrategy, setQuickSimStrategy] = useState<'value_100' | 'margin_preserve' | 'shared_50'>('value_100');
 
   // Modals state
   const [adjustModalItem, setAdjustModalItem] = useState<PurchasePriceVariation | null>(null);
@@ -251,6 +261,58 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
     }
   };
 
+  // Handler for batch price updates from simulator
+  const handleApplyBatchPrices = (updatedVariations: { id: string; newPublicPriceTtc: number }[]) => {
+    const updatedMap = new Map(updatedVariations.map(u => [u.id, u.newPublicPriceTtc]));
+    
+    setItems(prev => prev.map(item => {
+      if (updatedMap.has(item.id)) {
+        const newPrice = updatedMap.get(item.id)!;
+        return {
+          ...item,
+          currentPublicPriceTtc: newPrice,
+          status: 'prix_vente_ajuste' as PriceVariationStatus,
+          notes: `Prix répercuté à ${newPrice.toFixed(2)} € TTC (simulation marge appliquée le ${new Date().toLocaleDateString('fr-FR')})`
+        };
+      }
+      return item;
+    }));
+
+    if (onApplyBatchSimulatedPrices) {
+      onApplyBatchSimulatedPrices(updatedVariations);
+    }
+  };
+
+  const getVatRate = (category: string) => {
+    switch (category) {
+      case 'medicament_remboursable': return 0.021;
+      case 'nutrition_bebe': return 0.055;
+      case 'medicament_otc': return 0.10;
+      default: return 0.20;
+    }
+  };
+
+  // Helper for quick simulated price on alert row
+  const getQuickSimulatedPrice = (item: PurchasePriceVariation, strategy: 'value_100' | 'margin_preserve' | 'shared_50') => {
+    if (item.category === 'medicament_remboursable') {
+      return item.currentPublicPriceTtc;
+    }
+    const vat = getVatRate(item.category);
+    const curPvHt = item.currentPublicPriceTtc / (1 + vat);
+    
+    if (strategy === 'value_100') {
+      const newPvHt = curPvHt + Math.max(0, item.deltaAmountHt);
+      return Math.round(newPvHt * (1 + vat) * 100) / 100;
+    } else if (strategy === 'margin_preserve') {
+      const prevRate = Math.min(85, Math.max(5, item.previousMarginPct)) / 100;
+      const newPvHt = item.newPriceHt / (1 - prevRate);
+      return Math.round(newPvHt * (1 + vat) * 100) / 100;
+    } else {
+      const newPvHt = curPvHt + (Math.max(0, item.deltaAmountHt) * 0.5);
+      return Math.round(newPvHt * (1 + vat) * 100) / 100;
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Toast Alert */}
@@ -279,8 +341,15 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setActiveSubTab('simulateur_marge')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition cursor-pointer"
+          >
+            <Calculator className="w-3.5 h-3.5" />
+            <span>Simulateur Marge Brute</span>
+          </button>
+          <button
             onClick={handleExportVariationsCsv}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5 text-slate-500" />
             <span>Export CSV</span>
@@ -288,8 +357,132 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Sub-navigation Tabs */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 dark:bg-slate-800/80 rounded-2xl w-full sm:w-fit border border-slate-300/60 dark:border-slate-700/60">
+        <button
+          onClick={() => setActiveSubTab('alertes')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === 'alertes'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
+          <span>Alertes Récentes & Actions Immédiates</span>
+          {criticalHikesCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">
+              {criticalHikesCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('simulateur_marge')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === 'simulateur_marge'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Calculator className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Simulateur d'Impact Marge & Répercussion Prix Public</span>
+          <span className="px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border border-emerald-200 dark:border-emerald-800">
+            Nouveau
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('historique_fournisseur')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === 'historique_fournisseur'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Historique par Fournisseur & Renégociation Labo</span>
+        </button>
+      </div>
+
+      {activeSubTab === 'historique_fournisseur' ? (
+        <SupplierPriceHistoryView onBackToAlerts={() => setActiveSubTab('alertes')} />
+      ) : activeSubTab === 'simulateur_marge' ? (
+        <PricePassThroughSimulatorView
+          variations={items}
+          onApplySimulatedPrices={handleApplyBatchPrices}
+          onBackToAlerts={() => setActiveSubTab('alertes')}
+        />
+      ) : (
+        <>
+          {/* Simulation Mode Quick Toggle Banner */}
+          <div className="bg-linear-to-r from-indigo-50 via-slate-50 to-indigo-50/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-indigo-950/20 p-4 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-indigo-600 text-white shadow-xs">
+                <Calculator className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Option de Simulation Interactive en Direct</span>
+                  <span className="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
+                    Aide à la Décision
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Affichez les colonnes de simulation directement dans le tableau pour visualiser la marge restaurée si vous répercutez la hausse.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setIsLiveSimMode(!isLiveSimMode)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    isLiveSimMode
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>{isLiveSimMode ? 'Simulation Active' : 'Activer Simulation en Direct'}</span>
+                </button>
+              </div>
+
+              {isLiveSimMode && (
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                  <span className="text-[10px] font-bold text-slate-400 px-1">Règle :</span>
+                  {[
+                    { id: 'value_100', label: '100% Valeur (€)' },
+                    { id: 'margin_preserve', label: 'Maintien % Marge' },
+                    { id: 'shared_50', label: '50% Partagé' }
+                  ].map(st => (
+                    <button
+                      key={st.id}
+                      onClick={() => setQuickSimStrategy(st.id as any)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        quickSimStrategy === st.id
+                          ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={() => setActiveSubTab('simulateur_marge')}
+                className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+              >
+                <span>Ouvrir Studio Complet</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Hausses Détectées</span>
@@ -451,9 +644,18 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                 <th className="py-3 px-3 text-right">Ancien Prix HT</th>
                 <th className="py-3 px-3 text-right">Nouveau Prix HT</th>
                 <th className="py-3 px-3 text-center">Écart & Sévérité</th>
-                <th className="py-3 px-3 text-right">Impact Marge</th>
+                <th className="py-3 px-3 text-right">Impact Marge Actuelle</th>
                 <th className="py-3 px-3 text-right">Prix Vente Actuel</th>
-                <th className="py-3 px-3 text-right">Prix Suggéré</th>
+                {isLiveSimMode ? (
+                  <th className="py-3 px-3 text-right bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-x border-indigo-200 dark:border-indigo-800">
+                    <div className="flex items-center justify-end gap-1">
+                      <Calculator className="w-3 h-3" />
+                      <span>Prix Simulé & Marge</span>
+                    </div>
+                  </th>
+                ) : (
+                  <th className="py-3 px-3 text-right">Prix Suggéré</th>
+                )}
                 <th className="py-3 px-3 text-center">Statut</th>
                 <th className="py-3 px-4 text-center">Actions Décisionnelles</th>
               </tr>
@@ -471,6 +673,11 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                 filteredVariations.map((item) => {
                   const isHike = item.deltaAmountHt > 0;
                   const marginDrop = item.previousMarginPct - item.newMarginPct;
+                  const simPriceTtc = getQuickSimulatedPrice(item, quickSimStrategy);
+                  const vat = getVatRate(item.category);
+                  const simPvHt = simPriceTtc / (1 + vat);
+                  const simMarginPct = simPvHt > 0 ? ((simPvHt - item.newPriceHt) / simPvHt) * 100 : 0;
+                  const isRegulated = item.category === 'medicament_remboursable';
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition">
@@ -552,17 +759,48 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                         {item.currentPublicPriceTtc.toFixed(2)} €
                       </td>
 
-                      {/* Suggested Public Price TTC */}
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="font-mono font-black text-indigo-600 dark:text-indigo-400">
-                          {item.suggestedPublicPriceTtc.toFixed(2)} €
-                        </div>
-                        {item.suggestedPublicPriceTtc !== item.currentPublicPriceTtc && (
-                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-1 py-0.2 rounded">
-                            +{(item.suggestedPublicPriceTtc - item.currentPublicPriceTtc).toFixed(2)} €
-                          </span>
-                        )}
-                      </td>
+                      {/* Suggested vs Simulated Column */}
+                      {isLiveSimMode ? (
+                        <td className="py-3.5 px-3 text-right bg-indigo-50/50 dark:bg-indigo-950/30 border-x border-indigo-100 dark:border-indigo-900/60">
+                          {isRegulated ? (
+                            <div className="text-[10px] font-bold text-slate-400 italic">
+                              Réglementé (Fixe)
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="font-mono font-black text-indigo-700 dark:text-indigo-300 text-sm">
+                                {simPriceTtc.toFixed(2)} € TTC
+                              </div>
+                              <div className="flex items-center justify-end gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                <span>Marge: {simMarginPct.toFixed(1)}%</span>
+                                <span>(+{(simPriceTtc - item.currentPublicPriceTtc).toFixed(2)} €)</span>
+                              </div>
+                              {item.status !== 'prix_vente_ajuste' && (
+                                <button
+                                  onClick={() => {
+                                    setAdjustModalItem(item);
+                                    setAdjustNewPriceTtc(simPriceTtc);
+                                  }}
+                                  className="mt-1 px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-2xs transition cursor-pointer"
+                                >
+                                  Appliquer {simPriceTtc.toFixed(2)} €
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      ) : (
+                        <td className="py-3.5 px-3 text-right">
+                          <div className="font-mono font-black text-indigo-600 dark:text-indigo-400">
+                            {item.suggestedPublicPriceTtc.toFixed(2)} €
+                          </div>
+                          {item.suggestedPublicPriceTtc !== item.currentPublicPriceTtc && (
+                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-1 py-0.2 rounded">
+                              +{(item.suggestedPublicPriceTtc - item.currentPublicPriceTtc).toFixed(2)} €
+                            </span>
+                          )}
+                        </td>
+                      )}
 
                       {/* Status */}
                       <td className="py-3.5 px-3 text-center">
@@ -576,10 +814,10 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                             <button
                               onClick={() => handleOpenAdjustModal(item)}
                               className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                              title="Ajuster le prix de vente public TTC en caisse"
+                              title="Simuler et ajuster le prix de vente public TTC"
                             >
-                              <Tag className="w-3 h-3" />
-                              <span>Ajuster Prix</span>
+                              <Calculator className="w-3 h-3" />
+                              <span>Simuler Prix</span>
                             </button>
                           )}
 
@@ -599,7 +837,7 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                               onClick={() => {
                                 showToast(`Substitut conseillé : ${item.alternativeProduct?.name} (${item.alternativeProduct?.priceHt.toFixed(2)} € HT, économie: +${item.alternativeProduct?.savingsPerUnit.toFixed(2)} €/u)`);
                               }}
-                              className="p-1 rounded-lg bg-teal-50 dark:bg-teal-900/50 hover:bg-teal-100 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800"
+                              className="p-1 rounded-lg bg-teal-50 dark:bg-teal-900/50 hover:bg-teal-100 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 cursor-pointer"
                               title={`Substitut : ${item.alternativeProduct.name}`}
                             >
                               <Sparkles className="w-3.5 h-3.5" />
@@ -651,10 +889,66 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
             </div>
 
             <div className="space-y-3 text-xs">
-              <label className="font-bold text-slate-700 dark:text-slate-200">
-                Nouveau Prix Public TTC Caisse LGO (€) :
-              </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700 dark:text-slate-200">
+                  Nouveau Prix Public TTC Caisse LGO (€) :
+                </label>
+                <span className="text-[11px] text-slate-500">
+                  TVA applicable : {(getVatRate(adjustModalItem.category) * 100).toFixed(1)}%
+                </span>
+              </div>
+
+              {/* Simulation Scenarios Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Scénarios de Répercussion :</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vat = getVatRate(adjustModalItem.category);
+                      const curPvHt = adjustModalItem.currentPublicPriceTtc / (1 + vat);
+                      const newPvHt = curPvHt + Math.max(0, adjustModalItem.deltaAmountHt);
+                      setAdjustNewPriceTtc(Math.round(newPvHt * (1 + vat) * 100) / 100);
+                    }}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-left transition cursor-pointer"
+                  >
+                    <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">100% Valeur (€)</div>
+                    <div className="text-[10px] text-slate-400">Répercute +{adjustModalItem.deltaAmountHt.toFixed(2)} € HT</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vat = getVatRate(adjustModalItem.category);
+                      const prevRate = Math.min(85, Math.max(5, adjustModalItem.previousMarginPct)) / 100;
+                      const newPvHt = adjustModalItem.newPriceHt / (1 - prevRate);
+                      setAdjustNewPriceTtc(Math.round(newPvHt * (1 + vat) * 100) / 100);
+                    }}
+                    className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 text-left transition cursor-pointer"
+                  >
+                    <div className="font-bold text-indigo-700 dark:text-indigo-300 text-[11px]">Maintien Taux %</div>
+                    <div className="text-[10px] text-indigo-500">Garde {adjustModalItem.previousMarginPct.toFixed(1)}% de marge</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const vat = getVatRate(adjustModalItem.category);
+                      const curPvHt = adjustModalItem.currentPublicPriceTtc / (1 + vat);
+                      const newPvHt = curPvHt + Math.max(0, adjustModalItem.deltaAmountHt);
+                      const rawTtc = newPvHt * (1 + vat);
+                      const roundedTtc = Math.floor(rawTtc) + 0.90;
+                      setAdjustNewPriceTtc(roundedTtc < rawTtc ? roundedTtc + 1.0 : roundedTtc);
+                    }}
+                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-left transition cursor-pointer"
+                  >
+                    <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">Arrondi .90 €</div>
+                    <div className="text-[10px] text-slate-400">Prix psychologique</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
                 <input
                   type="number"
                   step="0.05"
@@ -665,26 +959,50 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
                 <button
                   type="button"
                   onClick={() => setAdjustNewPriceTtc(adjustModalItem.suggestedPublicPriceTtc)}
-                  className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold"
+                  className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
                 >
                   Suggéré : {adjustModalItem.suggestedPublicPriceTtc.toFixed(2)} €
                 </button>
               </div>
 
-              {/* Live Margin Calculation */}
-              {adjustNewPriceTtc > 0 && (
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 space-y-1">
-                  <div className="flex items-center justify-between font-bold">
-                    <span>Marge Brute Restaurée :</span>
-                    <span className="text-sm">
-                      {(((adjustNewPriceTtc / 1.20) - adjustModalItem.newPriceHt) / (adjustNewPriceTtc / 1.20) * 100).toFixed(1)} %
-                    </span>
+              {/* Live Margin Calculation & Comparison */}
+              {adjustNewPriceTtc > 0 && (() => {
+                const vat = getVatRate(adjustModalItem.category);
+                const adjPvHt = adjustNewPriceTtc / (1 + vat);
+                const adjMarginEuros = adjPvHt - adjustModalItem.newPriceHt;
+                const adjMarginRate = adjPvHt > 0 ? (adjMarginEuros / adjPvHt) * 100 : 0;
+                const unadjustedPvHt = adjustModalItem.currentPublicPriceTtc / (1 + vat);
+                const unadjustedMarginEuros = unadjustedPvHt - adjustModalItem.newPriceHt;
+                const unadjustedMarginRate = unadjustedPvHt > 0 ? (unadjustedMarginEuros / unadjustedPvHt) * 100 : 0;
+                const annualEstimatedQty = adjustModalItem.deltaAmountHt > 0 ? adjustModalItem.estimatedAnnualImpactEuros / adjustModalItem.deltaAmountHt : 100;
+                const annualPreservedMargin = (adjMarginEuros - unadjustedMarginEuros) * annualEstimatedQty;
+
+                return (
+                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300 space-y-2">
+                    <div className="flex items-center justify-between font-bold text-xs">
+                      <span>Marge Brute Restaurée avec ce prix :</span>
+                      <span className="text-base font-mono font-black text-emerald-700 dark:text-emerald-300">
+                        {adjMarginRate.toFixed(1)} % ({adjMarginEuros.toFixed(2)} € HT/boîte)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-800/60 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 dark:text-slate-400">Sans répercussion : </span>
+                        <span className="font-bold text-rose-600 dark:text-rose-400">
+                          {unadjustedMarginRate.toFixed(1)}% ({unadjustedMarginEuros.toFixed(2)} €)
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-slate-500 dark:text-slate-400">Marge annuelle sauvée : </span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                          +{annualPreservedMargin.toFixed(2)} € /an
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
-                    Gain unitaire : +{((adjustNewPriceTtc / 1.20) - adjustModalItem.newPriceHt).toFixed(2)} € HT par boîte vendue
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -761,6 +1079,8 @@ Le Pharmacien Titulaire - Grande Pharmacie de l'Hôtel de Ville`
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

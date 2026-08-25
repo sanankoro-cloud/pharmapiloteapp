@@ -1,6 +1,11 @@
 // Données de simulation pour les variations de prix d'achat et le contrôle des remises commerciales / RFA
 
-import { PurchasePriceVariation, SupplierRfaContract } from '../types/purchasingAndDiscounts';
+import { 
+  PurchasePriceVariation, 
+  SupplierRfaContract, 
+  SupplierPriceHistorySummary, 
+  ProductPriceHistory 
+} from '../types/purchasingAndDiscounts';
 
 export const MOCK_PURCHASE_PRICE_VARIATIONS: PurchasePriceVariation[] = [
   {
@@ -364,3 +369,824 @@ export const MOCK_SUPPLIER_RFA_CONTRACTS: SupplierRfaContract[] = [
     discrepancies: []
   }
 ];
+
+export const MOCK_SUPPLIER_PRICE_HISTORIES: SupplierPriceHistorySummary[] = [
+  {
+    supplierId: 'sup-pierre-fabre',
+    supplierName: 'Laboratoires Pierre Fabre (Dermo-Cosmétique & Santé)',
+    supplierType: 'laboratoire_direct',
+    contactCommercial: {
+      name: 'Sophie Delorme',
+      role: 'Déléguée Commerciale Régionale IDF & Directe Officine',
+      email: 'sophie.delorme@pierre-fabre.com',
+      phone: '06 42 18 90 33',
+      lastMeetingDate: '2026-06-12',
+      nextMeetingDate: '2026-09-04'
+    },
+    annualPurchasesVolumeHt: 48950.00,
+    totalReferencesCount: 42,
+    hikesReferencesCount: 8,
+    decreasesReferencesCount: 1,
+    averagePriceHikePct: 7.85,
+    totalAnnualOvercostEuros: 1485.60,
+    totalMarginErosionPts: 3.40,
+    negotiationPriority: 'urgente',
+    suggestedRemiseCompensationPct: 3.50,
+    negotiationNotes: 'Rendez-vous semestriel prévu le 04/09. À exiger : remise de ligne Avène Cicalfate et Dexeryl rehaussée de 12% à 15.5% ou avoir compensatoire de 1 200 € sur la prochaine commande d\'implantation dermo-cosmétique.',
+    products: [
+      {
+        cip: '3282770202262',
+        name: 'AVENE CICALFATE+ Crème Protectrice 100ml',
+        category: 'parapharmacie',
+        laboratory: 'Laboratoires Pierre Fabre',
+        supplier: 'Pierre Fabre Direct',
+        annualVolumeUnits: 450,
+        currentPriceHt: 7.95,
+        basePriceHtNMinus1: 7.20,
+        totalVariationPct: 10.42,
+        totalAnnualExtraCostEuros: 337.50,
+        marginErosionPts: 5.80,
+        currentMarginPct: 38.40,
+        targetMarginPct: 44.20,
+        currentPublicPriceTtc: 13.90,
+        suggestedPublicPriceTtc: 14.90,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 4.00,
+        requestedCreditNoteEuros: 337.50,
+        laboJustification: 'Hausse générale tarifaire catalogue 2026 répercutée suite aux coûts d\'approvisionnement en eau thermale et emballages recyclés.',
+        substituteAlternative: {
+          cip: '3337875816801',
+          name: 'LA ROCHE-POSAY CICAPLAST Baume B5+ 100ml',
+          laboratory: 'La Roche-Posay (L\'Oréal)',
+          priceHt: 7.15,
+          estimatedSavings: 360.00
+        },
+        historyPoints: [
+          {
+            date: '2025-01-15',
+            priceHt: 6.90,
+            invoiceRef: 'FAC-PF-2025-0192',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 6.07,
+            publicPriceTtc: 13.50,
+            marginRatePct: 45.1,
+            comment: 'Tarif initial catalogue 2025 avec remise groupement'
+          },
+          {
+            date: '2025-09-20',
+            priceHt: 7.20,
+            invoiceRef: 'FAC-PF-2025-0988',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 6.34,
+            publicPriceTtc: 13.90,
+            marginRatePct: 44.2,
+            comment: 'Réajustement tarifaire rentrée 2025'
+          },
+          {
+            date: '2026-03-10',
+            priceHt: 7.55,
+            invoiceRef: 'FAC-PF-2026-0312',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 6.64,
+            publicPriceTtc: 13.90,
+            marginRatePct: 41.5,
+            comment: 'Hausse intermédiaire printemps 2026'
+          },
+          {
+            date: '2026-08-15',
+            priceHt: 7.95,
+            invoiceRef: 'FAC-PF-2026-904',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 7.00,
+            publicPriceTtc: 13.90,
+            marginRatePct: 38.4,
+            comment: 'Nouvelle hausse catalogue unilatérale non annoncée'
+          }
+        ]
+      },
+      {
+        cip: '3400938446210',
+        name: 'DEXERYL Crème Tube 500g Pompe Emolliente',
+        category: 'medicament_otc',
+        laboratory: 'Laboratoires Pierre Fabre',
+        supplier: 'Pierre Fabre Direct',
+        annualVolumeUnits: 800,
+        currentPriceHt: 5.40,
+        basePriceHtNMinus1: 4.95,
+        totalVariationPct: 9.09,
+        totalAnnualExtraCostEuros: 360.00,
+        marginErosionPts: 4.20,
+        currentMarginPct: 36.50,
+        targetMarginPct: 40.70,
+        currentPublicPriceTtc: 9.20,
+        suggestedPublicPriceTtc: 9.90,
+        negotiationStatus: 'en_cours',
+        requestedCompensationRatePct: 3.50,
+        requestedCreditNoteEuros: 280.00,
+        laboJustification: 'Augmentation des coûts de glycérine et vaseline de qualité pharmaceutique européenne.',
+        substituteAlternative: {
+          cip: '3400930030554',
+          name: 'GLYCEROL/VASELINE/PARAFFINE BIOGARAN 500g',
+          laboratory: 'Biogaran',
+          priceHt: 4.60,
+          estimatedSavings: 640.00
+        },
+        historyPoints: [
+          {
+            date: '2025-02-10',
+            priceHt: 4.80,
+            invoiceRef: 'FAC-PF-2025-0144',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 4.32,
+            publicPriceTtc: 8.90,
+            marginRatePct: 41.2,
+            comment: 'Tarif annuel négocié contrat cadre'
+          },
+          {
+            date: '2025-10-05',
+            priceHt: 4.95,
+            invoiceRef: 'FAC-PF-2025-1102',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 4.46,
+            publicPriceTtc: 8.90,
+            marginRatePct: 39.5,
+            comment: 'Légère indexation coût flaconnage pompe'
+          },
+          {
+            date: '2026-05-18',
+            priceHt: 5.40,
+            invoiceRef: 'FAC-PF-2026-0570',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 4.86,
+            publicPriceTtc: 9.20,
+            marginRatePct: 36.5,
+            comment: 'Hausse brutale de 0.45 € par unité'
+          }
+        ]
+      },
+      {
+        cip: '3577056023880',
+        name: 'ELGYDIUM Dentifrice Protection Caries 75ml',
+        category: 'parapharmacie',
+        laboratory: 'Laboratoires Pierre Fabre Oral Care',
+        supplier: 'Pierre Fabre Direct',
+        annualVolumeUnits: 620,
+        currentPriceHt: 2.85,
+        basePriceHtNMinus1: 2.50,
+        totalVariationPct: 14.00,
+        totalAnnualExtraCostEuros: 217.00,
+        marginErosionPts: 4.80,
+        currentMarginPct: 39.20,
+        targetMarginPct: 44.00,
+        currentPublicPriceTtc: 5.10,
+        suggestedPublicPriceTtc: 5.50,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 5.00,
+        requestedCreditNoteEuros: 217.00,
+        laboJustification: 'Nouvelle formule au Fluorinol breveté et packaging tube allégé en plastique.',
+        historyPoints: [
+          {
+            date: '2025-03-01',
+            priceHt: 2.45,
+            invoiceRef: 'FAC-PF-2025-0280',
+            invoiceType: 'direct_labo',
+            discountRatePct: 15.0,
+            netPriceHt: 2.08,
+            publicPriceTtc: 4.90,
+            marginRatePct: 45.2,
+            comment: 'Opération promotionnelle hygiène bucco-dentaire'
+          },
+          {
+            date: '2025-11-12',
+            priceHt: 2.50,
+            invoiceRef: 'FAC-PF-2025-1205',
+            invoiceType: 'direct_labo',
+            discountRatePct: 15.0,
+            netPriceHt: 2.13,
+            publicPriceTtc: 4.90,
+            marginRatePct: 44.0,
+            comment: 'Tarif standard fin d\'année'
+          },
+          {
+            date: '2026-06-25',
+            priceHt: 2.85,
+            invoiceRef: 'FAC-PF-2026-0689',
+            invoiceType: 'direct_labo',
+            discountRatePct: 15.0,
+            netPriceHt: 2.42,
+            publicPriceTtc: 5.10,
+            marginRatePct: 39.2,
+            comment: 'Hausse tarifaire nouvelle formule'
+          }
+        ]
+      },
+      {
+        cip: '3282770144982',
+        name: 'AVENE Cleanance Gel Nettoyant 400ml',
+        category: 'parapharmacie',
+        laboratory: 'Laboratoires Pierre Fabre',
+        supplier: 'Pierre Fabre Direct',
+        annualVolumeUnits: 310,
+        currentPriceHt: 8.90,
+        basePriceHtNMinus1: 8.20,
+        totalVariationPct: 8.54,
+        totalAnnualExtraCostEuros: 217.00,
+        marginErosionPts: 3.10,
+        currentMarginPct: 41.50,
+        targetMarginPct: 44.60,
+        currentPublicPriceTtc: 16.90,
+        suggestedPublicPriceTtc: 17.50,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 3.00,
+        requestedCreditNoteEuros: 150.00,
+        historyPoints: [
+          {
+            date: '2025-01-20',
+            priceHt: 8.00,
+            invoiceRef: 'FAC-PF-2025-0080',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 7.04,
+            publicPriceTtc: 15.90,
+            marginRatePct: 45.4
+          },
+          {
+            date: '2025-09-15',
+            priceHt: 8.20,
+            invoiceRef: 'FAC-PF-2025-0940',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 7.22,
+            publicPriceTtc: 16.50,
+            marginRatePct: 44.6
+          },
+          {
+            date: '2026-07-14',
+            priceHt: 8.90,
+            invoiceRef: 'FAC-PF-2026-0742',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 7.83,
+            publicPriceTtc: 16.90,
+            marginRatePct: 41.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    supplierId: 'sup-sanofi-opella',
+    supplierName: 'Opella Healthcare (Sanofi Grand Public & OTC)',
+    supplierType: 'laboratoire_direct',
+    contactCommercial: {
+      name: 'Marc Levassor',
+      role: 'Responsable Comptes Clés Réseau Officines',
+      email: 'marc.levassor@opella.com',
+      phone: '06 18 90 22 45',
+      lastMeetingDate: '2026-05-18',
+      nextMeetingDate: '2026-09-10'
+    },
+    annualPurchasesVolumeHt: 78400.00,
+    totalReferencesCount: 28,
+    hikesReferencesCount: 5,
+    decreasesReferencesCount: 0,
+    averagePriceHikePct: 11.20,
+    totalAnnualOvercostEuros: 1940.00,
+    totalMarginErosionPts: 4.80,
+    negotiationPriority: 'urgente',
+    suggestedRemiseCompensationPct: 4.50,
+    negotiationNotes: 'Forte érosion sur la gamme antalgiques OTC et sommeil. Proposer un engagement volume groupement en échange d\'une remise directe relevée de 8% à 12% ou d\'un déblocage de palier RFA anticipé.',
+    products: [
+      {
+        cip: '3400935936417',
+        name: 'DOLIPRANE 1000MG B8 Comprimés',
+        dci: 'Paracétamol',
+        category: 'medicament_remboursable',
+        laboratory: 'Opella Healthcare (Sanofi)',
+        supplier: 'OCP Répartition / Sanofi Direct',
+        annualVolumeUnits: 8400,
+        currentPriceHt: 1.04,
+        basePriceHtNMinus1: 0.92,
+        totalVariationPct: 13.04,
+        totalAnnualExtraCostEuros: 1008.00,
+        marginErosionPts: 8.60,
+        currentMarginPct: 23.50,
+        targetMarginPct: 32.10,
+        currentPublicPriceTtc: 1.48,
+        suggestedPublicPriceTtc: 1.48,
+        negotiationStatus: 'en_cours',
+        requestedCompensationRatePct: 2.50,
+        requestedCreditNoteEuros: 600.00,
+        laboJustification: 'Réduction de la remise grossiste répartiteurs (passée de 2.5% à 0.8%) et répercussion de la hausse de l\'énergie industrielle.',
+        substituteAlternative: {
+          cip: '3400936087964',
+          name: 'PARACETAMOL BIOGARAN 1000MG B8 Comprimés',
+          laboratory: 'Biogaran',
+          priceHt: 0.89,
+          estimatedSavings: 1260.00
+        },
+        historyPoints: [
+          {
+            date: '2025-01-10',
+            priceHt: 0.90,
+            invoiceRef: 'FAC-OCP-2025-081',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 2.5,
+            netPriceHt: 0.88,
+            publicPriceTtc: 1.48,
+            marginRatePct: 33.2
+          },
+          {
+            date: '2025-08-25',
+            priceHt: 0.92,
+            invoiceRef: 'FAC-OCP-2025-912',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 2.5,
+            netPriceHt: 0.90,
+            publicPriceTtc: 1.48,
+            marginRatePct: 32.1
+          },
+          {
+            date: '2026-04-12',
+            priceHt: 0.98,
+            invoiceRef: 'FAC-OCP-2026-381',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 1.5,
+            netPriceHt: 0.96,
+            publicPriceTtc: 1.48,
+            marginRatePct: 27.8
+          },
+          {
+            date: '2026-08-20',
+            priceHt: 1.04,
+            invoiceRef: 'FAC-OCP-8831940',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 0.8,
+            netPriceHt: 1.03,
+            publicPriceTtc: 1.48,
+            marginRatePct: 23.5,
+            comment: 'Remise répartiteur rabotée au minimum légal'
+          }
+        ]
+      },
+      {
+        cip: '3400936021159',
+        name: 'LYSOPAINE Miel Citron B36 Pastilles',
+        category: 'medicament_otc',
+        laboratory: 'Opella Healthcare (Sanofi)',
+        supplier: 'Sanofi Direct OTC',
+        annualVolumeUnits: 1100,
+        currentPriceHt: 4.10,
+        basePriceHtNMinus1: 3.65,
+        totalVariationPct: 12.33,
+        totalAnnualExtraCostEuros: 495.00,
+        marginErosionPts: 4.10,
+        currentMarginPct: 38.20,
+        targetMarginPct: 42.30,
+        currentPublicPriceTtc: 7.90,
+        suggestedPublicPriceTtc: 8.50,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 5.00,
+        requestedCreditNoteEuros: 350.00,
+        historyPoints: [
+          {
+            date: '2025-02-14',
+            priceHt: 3.55,
+            invoiceRef: 'FAC-SAN-2025-110',
+            invoiceType: 'direct_labo',
+            discountRatePct: 8.0,
+            netPriceHt: 3.27,
+            publicPriceTtc: 7.50,
+            marginRatePct: 44.1
+          },
+          {
+            date: '2025-10-18',
+            priceHt: 3.65,
+            invoiceRef: 'FAC-SAN-2025-992',
+            invoiceType: 'direct_labo',
+            discountRatePct: 8.0,
+            netPriceHt: 3.36,
+            publicPriceTtc: 7.50,
+            marginRatePct: 42.3
+          },
+          {
+            date: '2026-06-10',
+            priceHt: 4.10,
+            invoiceRef: 'FAC-SAN-2026-440',
+            invoiceType: 'direct_labo',
+            discountRatePct: 8.0,
+            netPriceHt: 3.77,
+            publicPriceTtc: 7.90,
+            marginRatePct: 38.2
+          }
+        ]
+      },
+      {
+        cip: '3400938831924',
+        name: 'NOVANUIT Sommeil Triple Action B30 Gélules',
+        category: 'parapharmacie',
+        laboratory: 'Opella Healthcare (Sanofi)',
+        supplier: 'Sanofi Direct OTC',
+        annualVolumeUnits: 650,
+        currentPriceHt: 7.80,
+        basePriceHtNMinus1: 7.10,
+        totalVariationPct: 9.86,
+        totalAnnualExtraCostEuros: 455.00,
+        marginErosionPts: 3.90,
+        currentMarginPct: 42.00,
+        targetMarginPct: 45.90,
+        currentPublicPriceTtc: 14.90,
+        suggestedPublicPriceTtc: 15.90,
+        negotiationStatus: 'remise_obtenue',
+        requestedCompensationRatePct: 4.00,
+        requestedCreditNoteEuros: 300.00,
+        historyPoints: [
+          {
+            date: '2025-03-20',
+            priceHt: 6.95,
+            invoiceRef: 'FAC-SAN-2025-240',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 6.25,
+            publicPriceTtc: 14.50,
+            marginRatePct: 46.8
+          },
+          {
+            date: '2025-11-04',
+            priceHt: 7.10,
+            invoiceRef: 'FAC-SAN-2025-1040',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 6.39,
+            publicPriceTtc: 14.50,
+            marginRatePct: 45.9
+          },
+          {
+            date: '2026-07-22',
+            priceHt: 7.80,
+            invoiceRef: 'FAC-SAN-2026-788',
+            invoiceType: 'direct_labo',
+            discountRatePct: 10.0,
+            netPriceHt: 7.02,
+            publicPriceTtc: 14.90,
+            marginRatePct: 42.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    supplierId: 'sup-biogaran',
+    supplierName: 'Laboratoires Biogaran (Génériques & Conseil)',
+    supplierType: 'laboratoire_direct',
+    contactCommercial: {
+      name: 'Thomas Ronsard',
+      role: 'Délégué Commercial Régional Génériques',
+      email: 'thomas.ronsard@biogaran.fr',
+      phone: '06 72 31 14 09',
+      lastMeetingDate: '2026-07-02',
+      nextMeetingDate: '2026-09-18'
+    },
+    annualPurchasesVolumeHt: 124500.00,
+    totalReferencesCount: 145,
+    hikesReferencesCount: 12,
+    decreasesReferencesCount: 4,
+    averagePriceHikePct: 4.10,
+    totalAnnualOvercostEuros: 890.00,
+    totalMarginErosionPts: 1.20,
+    negotiationPriority: 'moderee',
+    suggestedRemiseCompensationPct: 2.00,
+    negotiationNotes: 'Partenaire générique principal avec remise maximale légale de 40% sur la majorité des lignes. Vigilance sur les quelques molécules en tension d\'approvisionnement.',
+    products: [
+      {
+        cip: '3400936302555',
+        name: 'PREDNISOLONE BIOGARAN 20MG B20 Comprimés orodispersibles',
+        dci: 'Prednisolone',
+        category: 'medicament_remboursable',
+        laboratory: 'Biogaran',
+        supplier: 'Biogaran Direct',
+        annualVolumeUnits: 2100,
+        currentPriceHt: 1.68,
+        basePriceHtNMinus1: 1.55,
+        totalVariationPct: 8.39,
+        totalAnnualExtraCostEuros: 273.00,
+        marginErosionPts: 5.00,
+        currentMarginPct: 35.00,
+        targetMarginPct: 40.00,
+        currentPublicPriceTtc: 2.80,
+        suggestedPublicPriceTtc: 2.80,
+        negotiationStatus: 'substitue',
+        requestedCompensationRatePct: 4.00,
+        requestedCreditNoteEuros: 200.00,
+        substituteAlternative: {
+          cip: '3400936111232',
+          name: 'PREDNISOLONE VIATRIS 20MG B20 Comprimés',
+          laboratory: 'Viatris Santé',
+          priceHt: 1.54,
+          estimatedSavings: 294.00
+        },
+        historyPoints: [
+          {
+            date: '2025-01-18',
+            priceHt: 1.50,
+            invoiceRef: 'BG-2025-0114',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 0.90,
+            publicPriceTtc: 2.80,
+            marginRatePct: 41.5
+          },
+          {
+            date: '2025-09-12',
+            priceHt: 1.55,
+            invoiceRef: 'BG-2025-1022',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 0.93,
+            publicPriceTtc: 2.80,
+            marginRatePct: 40.0
+          },
+          {
+            date: '2026-08-05',
+            priceHt: 1.68,
+            invoiceRef: 'BG-2026-3391',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 1.01,
+            publicPriceTtc: 2.80,
+            marginRatePct: 35.0
+          }
+        ]
+      },
+      {
+        cip: '3400937584102',
+        name: 'AMOXICILLINE/ACIDE CLAVULANIQUE BIOGARAN 1g/125mg B16',
+        dci: 'Amoxicilline + Ac. Clavulanique',
+        category: 'medicament_remboursable',
+        laboratory: 'Biogaran',
+        supplier: 'Biogaran Direct',
+        annualVolumeUnits: 1450,
+        currentPriceHt: 3.45,
+        basePriceHtNMinus1: 3.20,
+        totalVariationPct: 7.81,
+        totalAnnualExtraCostEuros: 362.50,
+        marginErosionPts: 2.80,
+        currentMarginPct: 37.20,
+        targetMarginPct: 40.00,
+        currentPublicPriceTtc: 5.90,
+        suggestedPublicPriceTtc: 5.90,
+        negotiationStatus: 'en_cours',
+        requestedCompensationRatePct: 3.00,
+        requestedCreditNoteEuros: 250.00,
+        historyPoints: [
+          {
+            date: '2025-02-10',
+            priceHt: 3.15,
+            invoiceRef: 'BG-2025-0210',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 1.89,
+            publicPriceTtc: 5.90,
+            marginRatePct: 41.0
+          },
+          {
+            date: '2025-10-25',
+            priceHt: 3.20,
+            invoiceRef: 'BG-2025-1240',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 1.92,
+            publicPriceTtc: 5.90,
+            marginRatePct: 40.0
+          },
+          {
+            date: '2026-06-18',
+            priceHt: 3.45,
+            invoiceRef: 'BG-2026-2810',
+            invoiceType: 'direct_labo',
+            discountRatePct: 40.0,
+            netPriceHt: 2.07,
+            publicPriceTtc: 5.90,
+            marginRatePct: 37.2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    supplierId: 'sup-urgo',
+    supplierName: 'Laboratoires Urgo (Santé & Medical)',
+    supplierType: 'laboratoire_direct',
+    contactCommercial: {
+      name: 'Claire Vasseur',
+      role: 'Responsable Régionale Gammes Pansements & OTC',
+      email: 'c.vasseur@fr.urgo.com',
+      phone: '06 88 12 34 76',
+      lastMeetingDate: '2026-04-20',
+      nextMeetingDate: '2026-09-22'
+    },
+    annualPurchasesVolumeHt: 21500.00,
+    totalReferencesCount: 36,
+    hikesReferencesCount: 7,
+    decreasesReferencesCount: 0,
+    averagePriceHikePct: 8.40,
+    totalAnnualOvercostEuros: 620.00,
+    totalMarginErosionPts: 3.80,
+    negotiationPriority: 'haute',
+    suggestedRemiseCompensationPct: 4.00,
+    negotiationNotes: 'Contester la perte de la remise groupement sur les pansements stériles et demander une bonification d\'implantation pour la gamme maintien & orthopédie.',
+    products: [
+      {
+        cip: '3401077712398',
+        name: 'URGOSTERIL 10x8cm B10 Pansements stériles',
+        category: 'dispositif_medical',
+        laboratory: 'Urgo Medical',
+        supplier: 'Urgo Direct',
+        annualVolumeUnits: 620,
+        currentPriceHt: 6.10,
+        basePriceHtNMinus1: 5.60,
+        totalVariationPct: 8.93,
+        totalAnnualExtraCostEuros: 310.00,
+        marginErosionPts: 5.80,
+        currentMarginPct: 29.20,
+        targetMarginPct: 35.00,
+        currentPublicPriceTtc: 9.90,
+        suggestedPublicPriceTtc: 10.50,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 5.00,
+        requestedCreditNoteEuros: 310.00,
+        laboJustification: 'Perte de la remise groupement temporaire non reconduite sur le bon de commande.',
+        historyPoints: [
+          {
+            date: '2025-03-15',
+            priceHt: 5.45,
+            invoiceRef: 'FAC-URGO-2025-110',
+            invoiceType: 'direct_labo',
+            discountRatePct: 15.0,
+            netPriceHt: 4.63,
+            publicPriceTtc: 9.50,
+            marginRatePct: 36.8
+          },
+          {
+            date: '2025-11-20',
+            priceHt: 5.60,
+            invoiceRef: 'FAC-URGO-2025-980',
+            invoiceType: 'direct_labo',
+            discountRatePct: 15.0,
+            netPriceHt: 4.76,
+            publicPriceTtc: 9.50,
+            marginRatePct: 35.0
+          },
+          {
+            date: '2026-08-12',
+            priceHt: 6.10,
+            invoiceRef: 'FAC-URGO-2026-551',
+            invoiceType: 'direct_labo',
+            discountRatePct: 9.0,
+            netPriceHt: 5.55,
+            publicPriceTtc: 9.90,
+            marginRatePct: 29.2,
+            comment: 'Remise directe passée de 15% à 9%'
+          }
+        ]
+      },
+      {
+        cip: '3401042857413',
+        name: 'URGO Ampoules Petit Format B6',
+        category: 'parapharmacie',
+        laboratory: 'Urgo Santé',
+        supplier: 'Urgo Direct',
+        annualVolumeUnits: 480,
+        currentPriceHt: 4.85,
+        basePriceHtNMinus1: 4.40,
+        totalVariationPct: 10.23,
+        totalAnnualExtraCostEuros: 216.00,
+        marginErosionPts: 4.20,
+        currentMarginPct: 40.50,
+        targetMarginPct: 44.70,
+        currentPublicPriceTtc: 9.50,
+        suggestedPublicPriceTtc: 9.90,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 4.00,
+        requestedCreditNoteEuros: 180.00,
+        historyPoints: [
+          {
+            date: '2025-04-10',
+            priceHt: 4.30,
+            invoiceRef: 'FAC-URGO-2025-240',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 3.78,
+            publicPriceTtc: 9.20,
+            marginRatePct: 46.0
+          },
+          {
+            date: '2025-10-08',
+            priceHt: 4.40,
+            invoiceRef: 'FAC-URGO-2025-880',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 3.87,
+            publicPriceTtc: 9.20,
+            marginRatePct: 44.7
+          },
+          {
+            date: '2026-07-15',
+            priceHt: 4.85,
+            invoiceRef: 'FAC-URGO-2026-440',
+            invoiceType: 'direct_labo',
+            discountRatePct: 12.0,
+            netPriceHt: 4.27,
+            publicPriceTtc: 9.50,
+            marginRatePct: 40.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    supplierId: 'sup-ocp-repartition',
+    supplierName: 'OCP Répartition (Grossiste-Répartiteur)',
+    supplierType: 'grossiste',
+    contactCommercial: {
+      name: 'Éric Montfort',
+      role: 'Responsable d\'Agence OCP Île-de-France Ouest',
+      email: 'eric.montfort@ocp.fr',
+      phone: '01 49 88 77 00',
+      lastMeetingDate: '2026-06-25',
+      nextMeetingDate: '2026-09-15'
+    },
+    annualPurchasesVolumeHt: 485000.00,
+    totalReferencesCount: 890,
+    hikesReferencesCount: 45,
+    decreasesReferencesCount: 6,
+    averagePriceHikePct: 5.40,
+    totalAnnualOvercostEuros: 3820.00,
+    totalMarginErosionPts: 1.80,
+    negotiationPriority: 'urgente',
+    suggestedRemiseCompensationPct: 1.20,
+    negotiationNotes: 'Contrôler la conformité du taux de remise grossiste contractuel (2.50%) sur les relevés mensuels LCR. Deux anomalies de sous-remise relevées pour un montant de 284.50 € à déduire de la prochaine traite.',
+    products: [
+      {
+        cip: '3401046535560',
+        name: 'PHYSIODOSE Sérum Physiologique 40x5ml',
+        category: 'parapharmacie',
+        laboratory: 'Laboratoires Gilbert',
+        supplier: 'OCP Répartition',
+        annualVolumeUnits: 1200,
+        currentPriceHt: 2.22,
+        basePriceHtNMinus1: 2.10,
+        totalVariationPct: 5.71,
+        totalAnnualExtraCostEuros: 144.00,
+        marginErosionPts: 3.10,
+        currentMarginPct: 42.90,
+        targetMarginPct: 46.00,
+        currentPublicPriceTtc: 4.20,
+        suggestedPublicPriceTtc: 4.50,
+        negotiationStatus: 'a_negocier',
+        requestedCompensationRatePct: 2.00,
+        requestedCreditNoteEuros: 100.00,
+        historyPoints: [
+          {
+            date: '2025-02-20',
+            priceHt: 2.05,
+            invoiceRef: 'FAC-OCP-2025-118',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 2.5,
+            netPriceHt: 2.00,
+            publicPriceTtc: 4.00,
+            marginRatePct: 47.0
+          },
+          {
+            date: '2025-10-15',
+            priceHt: 2.10,
+            invoiceRef: 'FAC-OCP-2025-994',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 2.5,
+            netPriceHt: 2.05,
+            publicPriceTtc: 4.20,
+            marginRatePct: 46.0
+          },
+          {
+            date: '2026-08-22',
+            priceHt: 2.22,
+            invoiceRef: 'FAC-OCP-8839100',
+            invoiceType: 'grossiste_repartition',
+            discountRatePct: 2.0,
+            netPriceHt: 2.18,
+            publicPriceTtc: 4.20,
+            marginRatePct: 42.9
+          }
+        ]
+      }
+    ]
+  }
+];
+

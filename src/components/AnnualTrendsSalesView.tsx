@@ -13,7 +13,8 @@ import {
   Sparkles,
   PieChart as PieIcon,
   Flame,
-  Activity
+  Activity,
+  Calculator
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -29,11 +30,14 @@ import {
   Area 
 } from 'recharts';
 import { MOCK_ANNUAL_TRENDS, MOCK_DAILY_STATS } from '../data/mockPharmacyData';
+import { MOCK_SUPPLIER_RFA_CONTRACTS } from '../data/mockPurchasingAndDiscounts';
 import { formatCurrency, formatPercent, exportToCsv } from '../utils/formatters';
 import { MultiYearSeasonalityComparison } from './MultiYearSeasonalityComparison';
+import { YearEndMarginPredictorView } from './YearEndMarginPredictorView';
+import { SectorGoalsComparisonView } from './SectorGoalsComparisonView';
 
 export const AnnualTrendsSalesView: React.FC = () => {
-  const [activeMainTab, setActiveMainTab] = useState<'seasonality_3y' | 'monthly_trends'>('seasonality_3y');
+  const [activeMainTab, setActiveMainTab] = useState<'sector_goals' | 'seasonality_3y' | 'monthly_trends' | 'predictif_marge'>('sector_goals');
   const [selectedYear, setSelectedYear] = useState('2026');
   const [activeMetric, setActiveMetric] = useState<'ca' | 'marge' | 'ebe'>('ca');
 
@@ -76,10 +80,27 @@ export const AnnualTrendsSalesView: React.FC = () => {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl shrink-0">
+          <button
+            onClick={() => setActiveMainTab('sector_goals')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeMainTab === 'sector_goals'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Layers className={`w-4 h-4 ${activeMainTab === 'sector_goals' ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+            <span>Secteurs vs Objectifs Fixés</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+              activeMainTab === 'sector_goals' ? 'bg-white text-indigo-700' : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+            }`}>
+              102,4%
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveMainTab('seasonality_3y')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeMainTab === 'seasonality_3y'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -91,7 +112,7 @@ export const AnnualTrendsSalesView: React.FC = () => {
 
           <button
             onClick={() => setActiveMainTab('monthly_trends')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeMainTab === 'monthly_trends'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -100,12 +121,40 @@ export const AnnualTrendsSalesView: React.FC = () => {
             <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             <span>Évolution & EBE (N vs N-1)</span>
           </button>
+
+          <button
+            onClick={() => setActiveMainTab('predictif_marge')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeMainTab === 'predictif_marge'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Calculator className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+            <span>Calcul Prédictif Marge & RFA</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 text-[10px] font-black">
+              87%
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Main Tab 0: Sector Goals Comparison (Médicaments, Parapharmacie, Conseils) */}
+      {activeMainTab === 'sector_goals' && (
+        <SectorGoalsComparisonView />
+      )}
 
       {/* Main Tab 1: Multi-Year Seasonal Analysis (2024, 2025, 2026) */}
       {activeMainTab === 'seasonality_3y' && (
         <MultiYearSeasonalityComparison />
+      )}
+
+      {/* Main Tab 3: Predictive Margin & RFA Year-End Calculation */}
+      {activeMainTab === 'predictif_marge' && (
+        <YearEndMarginPredictorView 
+          contracts={MOCK_SUPPLIER_RFA_CONTRACTS}
+          onBackToContracts={() => setActiveMainTab('seasonality_3y')}
+        />
       )}
 
       {/* Main Tab 2: Monthly Trends & EBITDA N vs N-1 */}

@@ -11,16 +11,25 @@ import {
   RefreshCw, 
   RotateCcw, 
   Tag, 
-  Trash2,
-  Boxes,
-  Euro,
-  Layers,
-  Scan,
-  Camera,
-  Plus
+  Trash2, 
+  Boxes, 
+  Euro, 
+  Layers, 
+  Scan, 
+  Camera, 
+  Plus,
+  BarChart3,
+  SlidersHorizontal,
+  Sparkles,
+  ShieldAlert,
+  Zap
 } from 'lucide-react';
 import { ProductStock } from '../types/pharmacy';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
+import { StockStatisticsDashboard } from './StockStatisticsDashboard';
+import { AdvancedStockSearchView } from './AdvancedStockSearchView';
+import { StockPredictiveAlertsView } from './StockPredictiveAlertsView';
+import { computeStockoutPredictions } from '../utils/stockPredictiveEngine';
 
 interface StockExpiryViewProps {
   products: ProductStock[];
@@ -30,7 +39,11 @@ interface StockExpiryViewProps {
   onDeleteProduct?: (productId: string) => void;
   onAdjustStockQty?: (productId: string, newQty: number) => void;
   onImportBulkProducts?: (products: ProductStock[]) => void;
+  onCreateSupplierOrder?: (orderItems: Array<{ product: ProductStock; quantity: number }>, supplierName: string) => void;
+  onAdjustStockThresholds?: (productId: string, newMin: number, newMax: number) => void;
 }
+
+type StockSubTab = 'predictive' | 'analytics' | 'search' | 'inventory';
 
 export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   products,
@@ -39,8 +52,18 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   onAddNewProduct,
   onDeleteProduct,
   onAdjustStockQty,
-  onImportBulkProducts
+  onImportBulkProducts,
+  onCreateSupplierOrder,
+  onAdjustStockThresholds
 }) => {
+  const [activeSubTab, setActiveSubTab] = useState<StockSubTab>('predictive');
+  const [searchPreset, setSearchPreset] = useState<string | null>(null);
+
+  // Pre-calculate count of predictive alerts for badge
+  const { summary: predictiveSummary } = React.useMemo(() => {
+    return computeStockoutPredictions(products);
+  }, [products]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -67,7 +90,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   const [newExpiryDate, setNewExpiryDate] = useState('2027-12-31');
   const [newIsRefrigerated, setNewIsRefrigerated] = useState(false);
 
-  // Filter products
+  // Filter products for classic table
   const filteredProducts = products.filter(p => {
     const matchesSearch = 
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -148,6 +171,15 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
     setNewDci('');
   };
 
+  const handleSelectFilterPreset = (presetKey: string) => {
+    setSearchPreset(presetKey);
+    setActiveSubTab('search');
+  };
+
+  const handleOpenAdvancedSearch = () => {
+    setActiveSubTab('search');
+  };
+
   const handleCsvImportSubmit = () => {
     if (!csvContent.trim()) return;
     try {
@@ -221,25 +253,25 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
     <div className="space-y-6 pb-12">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+            <span className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
               <Package className="w-5 h-5" />
             </span>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-              Gestion des Stocks & Alertes Péremption
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Gestion des Stocks, Statistiques & Péremptions
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Suivi temps réel des stocks, traçabilité des lots & DLUO, valorisation PUMP et plans d'action anti-gaspillage.
+            Analyse de Pareto ABC, rotation DIO, traçabilité des DLUO, valorisation PUMP et recherche avancée multi-critères.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nouveau Produit / Lot</span>
@@ -247,7 +279,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
 
           <button
             onClick={() => setIsImportCsvOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shadow-2xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shadow-2xs transition cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 rotate-180" />
             <span>Importer CSV</span>
@@ -255,7 +287,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
 
           <button
             onClick={onOpenBarcodeScanner}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold shadow-xs transition group"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold shadow-xs transition group cursor-pointer"
           >
             <Camera className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition" />
             <span>Scanner</span>
@@ -263,7 +295,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
 
           <button
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>Export CSV</span>
@@ -279,326 +311,439 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
         </div>
       )}
 
-      {/* Expiry Alert Highlight Banner */}
-      {urgentExpiries.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-950/40 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs">
-          <div className="flex items-start">
-            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mr-3 mt-0.5" />
-            <div className="flex-1">
-              <h2 className="text-sm font-bold text-amber-900 dark:text-amber-200">
-                {urgentExpiries.length} Produit(s) à Péremption Imminente (&lt; 30 Jours)
-              </h2>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                Ces lots doivent être immédiatement retirés de la dispensation, retournés aux laboratoires pour avoir, ou déstockés selon les règles de bonne pratique officinale.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {urgentExpiries.map(p => (
-                  <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[11px] font-bold">
-                    {p.name} ({p.stockQty} boîtes - Exp. {formatDate(p.expiryDate)})
-                  </span>
-                ))}
+      {/* Navigation Sub-Tabs Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setActiveSubTab('predictive')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            activeSubTab === 'predictive'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-900/30'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <ShieldAlert className={`w-4 h-4 ${activeSubTab === 'predictive' ? 'text-white animate-pulse' : 'text-rose-500'}`} />
+          <span>Alertes Prédictives & Ruptures (MITM)</span>
+          {(predictiveSummary.criticalImminentCount + predictiveSummary.warningReorderCount) > 0 && (
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+              activeSubTab === 'predictive'
+                ? 'bg-white text-rose-700'
+                : 'bg-rose-500 text-white'
+            }`}>
+              {predictiveSummary.criticalImminentCount + predictiveSummary.warningReorderCount} alertes
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('analytics')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            activeSubTab === 'analytics'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 text-emerald-500" />
+          <span>Tableau de Bord & Statistiques de Stock (ABC)</span>
+          <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black">
+            Pareto
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('search')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            activeSubTab === 'search'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+          <span>Recherche Avancée & Multi-Filtres</span>
+          <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black">
+            {products.length} Réf.
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('inventory')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            activeSubTab === 'inventory'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <Package className="w-4 h-4 text-amber-500" />
+          <span>Inventaire & Actions Anti-Gaspillage</span>
+          {urgentExpiries.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-md bg-rose-500 text-white text-[10px] font-black">
+              {urgentExpiries.length} urgents
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* VIEW 0: PREDICTIVE STOCKOUT ALERTS */}
+      {activeSubTab === 'predictive' && (
+        <StockPredictiveAlertsView
+          products={products}
+          onCreateSupplierOrder={onCreateSupplierOrder}
+          onAdjustStockThresholds={onAdjustStockThresholds}
+          onNavigateToStockSearch={(term) => {
+            setSearchTerm(term);
+            setActiveSubTab('search');
+          }}
+        />
+      )}
+
+      {/* VIEW 1: STATISTICAL DASHBOARD (ABC & PARETO) */}
+      {activeSubTab === 'analytics' && (
+        <StockStatisticsDashboard
+          products={products}
+          onSelectFilterPreset={handleSelectFilterPreset}
+          onOpenAdvancedSearch={handleOpenAdvancedSearch}
+        />
+      )}
+
+      {/* VIEW 2: ADVANCED SEARCH MULTI-CRITERIA */}
+      {activeSubTab === 'search' && (
+        <AdvancedStockSearchView
+          products={products}
+          initialPreset={searchPreset}
+          onDestockProduct={onDestockProduct}
+          onOpenBarcodeScanner={onOpenBarcodeScanner}
+          onAddNewProduct={onAddNewProduct}
+          onDeleteProduct={onDeleteProduct}
+          onAdjustStockQty={onAdjustStockQty}
+          onImportBulkProducts={onImportBulkProducts}
+        />
+      )}
+
+      {/* VIEW 3: CLASSIC INVENTORY & PEREMPTIONS */}
+      {activeSubTab === 'inventory' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          {/* Expiry Alert Highlight Banner */}
+          {urgentExpiries.length > 0 && (
+            <div className="bg-amber-50 dark:bg-amber-950/40 border-l-4 border-amber-500 p-4 rounded-r-2xl shadow-xs">
+              <div className="flex items-start">
+                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mr-3 mt-0.5" />
+                <div className="flex-1">
+                  <h2 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                    {urgentExpiries.length} Produit(s) à Péremption Imminente (&lt; 30 Jours)
+                  </h2>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                    Ces lots doivent être immédiatement retirés de la dispensation, retournés aux laboratoires pour avoir, ou déstockés selon les règles de bonne pratique officinale.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {urgentExpiries.map(p => (
+                      <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-200/60 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[11px] font-bold">
+                        {p.name} ({p.stockQty} boîtes - Exp. {formatDate(p.expiryDate)})
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Aggregate KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Valorisation Stock HT (PUMP)
+              </div>
+              <div className="text-xl font-bold text-slate-900 dark:text-white">
+                {formatCurrency(totalStockPump)}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Prix de revient moyen d'achat
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Potentiel Vente TTC
+              </div>
+              <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                {formatCurrency(totalStockPublicTtc)}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Marge brute : {formatCurrency(totalStockPublicTtc - totalStockPump)}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Péremptions &lt; 30 / 60j
+              </div>
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                {urgentExpiries.length} lots critiques
+              </div>
+              <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                À traiter en priorité
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                Seuils de Réassort
+              </div>
+              <div className="text-xl font-bold text-slate-900 dark:text-white">
+                {lowStockCount.length} sous seuil
+              </div>
+              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-1">
+                Intégrés au réassort automatique
+              </div>
+            </div>
+          </div>
+
+          {/* Filter and Search Bar */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, CIP, DCI, labo, lot..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                />
+              </div>
+
+              <button
+                onClick={onOpenBarcodeScanner}
+                className="sm:hidden p-2 rounded-xl bg-emerald-600 text-white shrink-0 shadow-xs"
+                title="Ouvrir le scanner code-barres"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Category Filter */}
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 font-medium"
+              >
+                <option value="all">Toutes les catégories</option>
+                <option value="medicament_remboursable">Médicaments Remboursables (2.1%)</option>
+                <option value="medicament_otc">Conseil & OTC (10%)</option>
+                <option value="parapharmacie">Parapharmacie & Dermo (20%)</option>
+                <option value="nutrition_bebe">Nutrition Infantile (5.5%)</option>
+                <option value="dispositif_medical">Dispositifs Médicaux (20%)</option>
+              </select>
+
+              {/* Status Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 font-medium"
+              >
+                <option value="all">Tous les états</option>
+                <option value="near_expiry">⚠️ Péremption &lt; 60 jours</option>
+                <option value="low_stock">📉 Stock Faible / Rupture</option>
+                <option value="refrigerated">❄️ Chaîne du froid (Frigo 2-8°C)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Stock Table */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="py-3 px-4">Produit & DCI</th>
+                    <th className="py-3 px-3">Emplacement / Lot</th>
+                    <th className="py-3 px-3 text-center">Stock / Seuil</th>
+                    <th className="py-3 px-3 text-right">PUMP HT</th>
+                    <th className="py-3 px-3 text-right">Prix TTC</th>
+                    <th className="py-3 px-3">Péremption</th>
+                    <th className="py-3 px-3 text-center">Statut</th>
+                    <th className="py-3 px-4 text-right">Actions Anti-Gaspillage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredProducts.map((prod) => {
+                    const isCriticalExpiry = prod.daysUntilExpiry <= 30;
+                    const isWarningExpiry = prod.daysUntilExpiry > 30 && prod.daysUntilExpiry <= 60;
+                    const isLowStock = prod.stockQty <= prod.minThreshold;
+
+                    return (
+                      <tr key={prod.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${isCriticalExpiry ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''}`}>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            {prod.name}
+                            {prod.isRefrigerated && (
+                              <span title="Frigo 2-8°C" className="text-sky-500 dark:text-sky-400">
+                                <Thermometer className="w-3.5 h-3.5 inline" />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span className="font-mono">{prod.cip}</span>
+                            <span>•</span>
+                            <span>{prod.laboratory}</span>
+                            {prod.dci && <span className="text-slate-400 dark:text-slate-500 italic font-serif">({prod.dci})</span>}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3">
+                          <div className="font-medium text-slate-800 dark:text-slate-200">{prod.location}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Lot : {prod.lotNumber}</div>
+                        </td>
+                        <td className="py-3.5 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {onAdjustStockQty && (
+                              <button
+                                type="button"
+                                onClick={() => onAdjustStockQty(prod.id, Math.max(0, prod.stockQty - 1))}
+                                className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center text-xs cursor-pointer"
+                                title="Retirer 1 boîte du stock"
+                              >
+                                -
+                              </button>
+                            )}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs ${
+                              isLowStock ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+                            }`}>
+                              {prod.stockQty} / {prod.minThreshold}
+                            </span>
+                            {onAdjustStockQty && (
+                              <button
+                                type="button"
+                                onClick={() => onAdjustStockQty(prod.id, prod.stockQty + 1)}
+                                className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-950 hover:bg-emerald-200 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center text-xs cursor-pointer"
+                                title="Ajouter 1 boîte au stock"
+                              >
+                                +
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 text-right font-medium text-slate-900 dark:text-slate-200">
+                          {formatCurrency(prod.pump)}
+                        </td>
+                        <td className="py-3.5 px-3 text-right font-bold text-slate-900 dark:text-white">
+                          {formatCurrency(prod.publicPriceTtc)}
+                        </td>
+                        <td className="py-3.5 px-3">
+                          <div className={`font-semibold ${
+                            isCriticalExpiry ? 'text-rose-600 dark:text-rose-400 font-bold' :
+                            isWarningExpiry ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {formatDate(prod.expiryDate)}
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            {prod.daysUntilExpiry > 0 ? `dans ${prod.daysUntilExpiry} jours` : 'Périmé'}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 text-center">
+                          {isCriticalExpiry ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                              <AlertTriangle className="w-3 h-3" />
+                              &lt; 30 jours
+                            </span>
+                          ) : isWarningExpiry ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              <Clock className="w-3 h-3" />
+                              &lt; 60 jours
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                              <CheckCircle className="w-3 h-3" />
+                              Conforme
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={onOpenBarcodeScanner}
+                              className="p-1 rounded text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950 cursor-pointer"
+                              title="Scanner une boîte ou vérifier le Datamatrix"
+                            >
+                              <Scan className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            </button>
+                            <button
+                              onClick={() => handleAction(prod.id, 'retour_labo')}
+                              className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                              title="Faire une demande de retour pour avoir au laboratoire"
+                            >
+                              <RotateCcw className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                              <span>Retour</span>
+                            </button>
+                            {prod.category === 'parapharmacie' && (
+                              <button
+                                onClick={() => handleAction(prod.id, 'promo')}
+                                className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-200 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                                title="Mettre en déstockage promotionnel -30%"
+                              >
+                                <Tag className="w-3 h-3 text-amber-700 dark:text-amber-400" />
+                                <span>Promo</span>
+                              </button>
+                            )}
+                            {onDeleteProduct ? (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Supprimer « ${prod.name} » de l'inventaire ?`)) {
+                                    onDeleteProduct(prod.id);
+                                  }
+                                }}
+                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 cursor-pointer"
+                                title="Supprimer définitivement ce produit du stock"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleAction(prod.id, 'destruction')}
+                                className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 cursor-pointer"
+                                title="PV de destruction officiel"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {filteredProducts.length === 0 && (
+                <div className="p-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+                    <Package className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Aucun produit dans le stock pour ces critères
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                    Ajoutez manuellement vos références ou importez un inventaire CSV exporté depuis votre LGO (WinPharma, LGPI, Isipharm).
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs cursor-pointer"
+                    >
+                      + Ajouter un Produit
+                    </button>
+                    <button
+                      onClick={() => setIsImportCsvOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs cursor-pointer"
+                    >
+                      Importer Inventaire CSV
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
-
-      {/* Aggregate KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-            Valorisation Stock HT (PUMP)
-          </div>
-          <div className="text-xl font-bold text-slate-900 dark:text-white">
-            {formatCurrency(totalStockPump)}
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Prix de revient moyen d'achat
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-            Potentiel Vente TTC
-          </div>
-          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-            {formatCurrency(totalStockPublicTtc)}
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Marge brute potentielle : {formatCurrency(totalStockPublicTtc - totalStockPump)}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-            Péremptions &lt; 30 / 60j
-          </div>
-          <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
-            {urgentExpiries.length} lots critiques
-          </div>
-          <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-            À traiter en priorité
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-            Seuils de Réassort
-          </div>
-          <div className="text-xl font-bold text-slate-900 dark:text-white">
-            {lowStockCount.length} sous seuil
-          </div>
-          <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-1">
-            Intégrés au réassort automatique
-          </div>
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-3 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Rechercher par nom, CIP, DCI, labo, lot..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-            />
-          </div>
-
-          <button
-            onClick={onOpenBarcodeScanner}
-            className="sm:hidden p-2 rounded-lg bg-emerald-600 text-white shrink-0 shadow-xs"
-            title="Ouvrir le scanner code-barres"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Category Filter */}
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 font-medium"
-          >
-            <option value="all">Toutes les catégories</option>
-            <option value="medicament_remboursable">Médicaments Remboursables (2.1%)</option>
-            <option value="medicament_otc">Conseil & OTC (10%)</option>
-            <option value="parapharmacie">Parapharmacie & Dermo (20%)</option>
-            <option value="nutrition_bebe">Nutrition Infantile (5.5%)</option>
-            <option value="dispositif_medical">Dispositifs Médicaux (20%)</option>
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 font-medium"
-          >
-            <option value="all">Tous les états</option>
-            <option value="near_expiry">⚠️ Péremption &lt; 60 jours</option>
-            <option value="low_stock">📉 Stock Faible / Rupture</option>
-            <option value="refrigerated">❄️ Chaîne du froid (Frigo 2-8°C)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Stock Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700 dark:text-slate-200">
-            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="py-3 px-4">Produit & DCI</th>
-                <th className="py-3 px-3">Emplacement / Lot</th>
-                <th className="py-3 px-3 text-center">Stock / Seuil</th>
-                <th className="py-3 px-3 text-right">PUMP HT</th>
-                <th className="py-3 px-3 text-right">Prix TTC</th>
-                <th className="py-3 px-3">Péremption</th>
-                <th className="py-3 px-3 text-center">Statut</th>
-                <th className="py-3 px-4 text-right">Actions Anti-Gaspillage</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredProducts.map((prod) => {
-                const isCriticalExpiry = prod.daysUntilExpiry <= 30;
-                const isWarningExpiry = prod.daysUntilExpiry > 30 && prod.daysUntilExpiry <= 60;
-                const isLowStock = prod.stockQty <= prod.minThreshold;
-
-                return (
-                  <tr key={prod.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition ${isCriticalExpiry ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''}`}>
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        {prod.name}
-                        {prod.isRefrigerated && (
-                          <span title="Frigo 2-8°C" className="text-sky-500 dark:text-sky-400">
-                            <Thermometer className="w-3.5 h-3.5 inline" />
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        <span className="font-mono">{prod.cip}</span>
-                        <span>•</span>
-                        <span>{prod.laboratory}</span>
-                        {prod.dci && <span className="text-slate-400 dark:text-slate-500 italic font-serif">({prod.dci})</span>}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <div className="font-medium text-slate-800 dark:text-slate-200">{prod.location}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Lot : {prod.lotNumber}</div>
-                    </td>
-                    <td className="py-3.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {onAdjustStockQty && (
-                          <button
-                            type="button"
-                            onClick={() => onAdjustStockQty(prod.id, Math.max(0, prod.stockQty - 1))}
-                            className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-center text-xs"
-                            title="Retirer 1 boîte du stock"
-                          >
-                            -
-                          </button>
-                        )}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-xs ${
-                          isLowStock ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
-                        }`}>
-                          {prod.stockQty} / {prod.minThreshold}
-                        </span>
-                        {onAdjustStockQty && (
-                          <button
-                            type="button"
-                            onClick={() => onAdjustStockQty(prod.id, prod.stockQty + 1)}
-                            className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-950 hover:bg-emerald-200 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 font-bold flex items-center justify-center text-xs"
-                            title="Ajouter 1 boîte au stock"
-                          >
-                            +
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3 text-right font-medium text-slate-900 dark:text-slate-200">
-                      {formatCurrency(prod.pump)}
-                    </td>
-                    <td className="py-3.5 px-3 text-right font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(prod.publicPriceTtc)}
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <div className={`font-semibold ${
-                        isCriticalExpiry ? 'text-rose-600 dark:text-rose-400 font-bold' :
-                        isWarningExpiry ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'
-                      }`}>
-                        {formatDate(prod.expiryDate)}
-                      </div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                        {prod.daysUntilExpiry > 0 ? `dans ${prod.daysUntilExpiry} jours` : 'Périmé'}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3 text-center">
-                      {isCriticalExpiry ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                          <AlertTriangle className="w-3 h-3" />
-                          &lt; 30 jours
-                        </span>
-                      ) : isWarningExpiry ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                          <Clock className="w-3 h-3" />
-                          &lt; 60 jours
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          <CheckCircle className="w-3 h-3" />
-                          Conforme
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={onOpenBarcodeScanner}
-                          className="p-1 rounded text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                          title="Scanner une boîte ou vérifier le Datamatrix"
-                        >
-                          <Scan className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        </button>
-                        <button
-                          onClick={() => handleAction(prod.id, 'retour_labo')}
-                          className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-semibold flex items-center gap-1"
-                          title="Faire une demande de retour pour avoir au laboratoire"
-                        >
-                          <RotateCcw className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                          <span>Retour</span>
-                        </button>
-                        {prod.category === 'parapharmacie' && (
-                          <button
-                            onClick={() => handleAction(prod.id, 'promo')}
-                            className="px-2 py-1 rounded bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-200 text-[11px] font-semibold flex items-center gap-1"
-                            title="Mettre en déstockage promotionnel -30%"
-                          >
-                            <Tag className="w-3 h-3 text-amber-700 dark:text-amber-400" />
-                            <span>Promo</span>
-                          </button>
-                        )}
-                        {onDeleteProduct ? (
-                          <button
-                            onClick={() => {
-                              if (confirm(`Supprimer « ${prod.name} » de l'inventaire ?`)) {
-                                onDeleteProduct(prod.id);
-                              }
-                            }}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
-                            title="Supprimer définitivement ce produit du stock"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleAction(prod.id, 'destruction')}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
-                            title="PV de destruction officiel"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {filteredProducts.length === 0 && (
-            <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
-                <Package className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Aucun produit dans le stock pour ces critères
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                Ajoutez manuellement vos références ou importez un inventaire CSV exporté depuis votre LGO (WinPharma, LGPI, Isipharm).
-              </p>
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs"
-                >
-                  + Ajouter un Produit
-                </button>
-                <button
-                  onClick={() => setIsImportCsvOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs"
-                >
-                  Importer Inventaire CSV
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* MODAL: ADD PRODUCT */}
       {isAddModalOpen && (
