@@ -32,3 +32,6 @@ EXPOSE 3000
 
 # Commande de démarrage
 CMD ["npm", "run", "preview"]
+# Build-time arg to inject the Vite public variable into the builder environment
+ARG VITE_GOOGLE_GENAI_KEY
+ENV VITE_GOOGLE_GENAI_KEY=$VITE_GOOGLE_GENAI_KEY
