@@ -11,7 +11,6 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - VITE_GOOGLE_GENAI_KEY=${VITE_GOOGLE_GENAI_KEY}
       - NODE_ENV=production
     restart: unless-stopped
     networks:

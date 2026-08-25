@@ -14,10 +14,9 @@ COPY . .
 
 # Build-time arg to inject the Vite public variable into the builder environment
 ARG VITE_GOOGLE_GENAI_KEY
-ENV VITE_GOOGLE_GENAI_KEY=$VITE_GOOGLE_GENAI_KEY
 
-# Builder l'application React
-RUN npm run build
+# Use the ARG only for the build command to avoid persisting the secret in image layers
+RUN VITE_GOOGLE_GENAI_KEY="$VITE_GOOGLE_GENAI_KEY" npm run build
 
 # Stage 2: Runtime
 FROM node:22-alpine
