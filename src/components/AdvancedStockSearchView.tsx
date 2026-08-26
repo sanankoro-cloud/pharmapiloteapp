@@ -27,7 +27,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Lock
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
 import { ProductStock, ProductCategory, ProductTva } from '../types/pharmacy';
 import { computeStockAnalytics, StockEnrichedProduct, CATEGORY_LABELS } from '../utils/stockAnalyticsEngine';
@@ -379,6 +380,7 @@ export const AdvancedStockSearchView: React.FC<AdvancedStockSearchViewProps> = (
     expiryHorizon !== 'all',
     onlyRefrigerated,
     onlyHighValue,
+    onlyMitm,
     searchTerm.trim() !== ''
   ].filter(Boolean).length;
 
@@ -462,6 +464,27 @@ export const AdvancedStockSearchView: React.FC<AdvancedStockSearchViewProps> = (
           <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 shrink-0 mr-1 uppercase tracking-wider">
             Filtres 1-Clic :
           </span>
+
+          <button
+            onClick={() => applyPreset(activePreset === 'mitm' ? null : 'mitm')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer ${
+              activePreset === 'mitm' || onlyMitm
+                ? 'bg-purple-700 text-white shadow-xs ring-2 ring-purple-400/40'
+                : 'bg-purple-50 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800/60'
+            }`}
+            title="Médicaments d'Intérêt Thérapeutique Majeur (ANSMS / Ruptures prioritaires)"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-purple-600 dark:text-purple-300" />
+            <span>MITM Essentiels</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-purple-200/60 dark:bg-purple-900/60 text-purple-900 dark:text-purple-200 text-[10px] font-black">
+              {totalMitmCount}
+            </span>
+            {mitmCriticalAlertsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-md bg-rose-600 text-white text-[9px] font-black animate-pulse" title={`${mitmCriticalAlertsCount} MITM en tension (< 15j stock)`}>
+                {mitmCriticalAlertsCount} tension
+              </span>
+            )}
+          </button>
 
           <button
             onClick={() => applyPreset(activePreset === 'near_expiry' ? null : 'near_expiry')}
@@ -702,6 +725,16 @@ export const AdvancedStockSearchView: React.FC<AdvancedStockSearchViewProps> = (
                     />
                     <span>🔒 Haute Valeur / Coffre sécurisé</span>
                   </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-purple-700 dark:text-purple-300 font-bold">
+                    <input
+                      type="checkbox"
+                      checked={onlyMitm}
+                      onChange={(e) => setOnlyMitm(e.target.checked)}
+                      className="rounded text-purple-600 focus:ring-purple-500 w-3.5 h-3.5"
+                    />
+                    <span>🛡️ MITM (Médicament Vital / Priorité Rupture)</span>
+                  </label>
                 </div>
               </div>
 
@@ -889,6 +922,15 @@ export const AdvancedStockSearchView: React.FC<AdvancedStockSearchViewProps> = (
                         {prod.isHighValue && (
                           <span title="Haute Valeur / Coffre" className="text-amber-500">
                             <Lock className="w-3 h-3 inline" />
+                          </span>
+                        )}
+                        {(prod.isEssential || (prod as any).isMitm) && (
+                          <span 
+                            title="Médicament d'Intérêt Thérapeutique Majeur (MITM / Vital)" 
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-black"
+                          >
+                            <ShieldAlert className="w-3 h-3" />
+                            MITM
                           </span>
                         )}
                       </div>
@@ -1081,6 +1123,15 @@ export const AdvancedStockSearchView: React.FC<AdvancedStockSearchViewProps> = (
                     <span className="font-mono font-bold">CIP : {detailedProduct.cip}</span>
                     <span>•</span>
                     <span>{detailedProduct.laboratory}</span>
+                    {(detailedProduct.isEssential || (detailedProduct as any).isMitm) && (
+                      <>
+                        <span>•</span>
+                        <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40 flex items-center gap-1">
+                          <ShieldAlert className="w-3 h-3" />
+                          MITM (Médicament Vital)
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

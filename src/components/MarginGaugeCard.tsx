@@ -20,22 +20,55 @@ import { MOCK_CATEGORY_MARGINS } from '../data/mockMarginWatchdog';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 interface MarginGaugeCardProps {
+  categories?: CategoryMarginStatus[];
+  isRealModeActive?: boolean;
   onNavigateTab?: (tab: string) => void;
 }
 
-export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab }) => {
-  const [categories] = useState<CategoryMarginStatus[]>(MOCK_CATEGORY_MARGINS);
-  const [selectedKey, setSelectedKey] = useState<string>('parapharmacie');
+export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ 
+  categories = MOCK_CATEGORY_MARGINS, 
+  isRealModeActive = false,
+  onNavigateTab 
+}) => {
+  const [selectedKey, setSelectedKey] = useState<string>('globale');
+
+  // Check if we are in blank/empty state
+  const isBlankState = isRealModeActive && (!categories || categories.length === 0 || categories.every(c => c.caHtCurrentMonth === 0));
 
   // Consolidated Global Officine Metrics
   const globalSummary = useMemo(() => {
+    if (categories.length === 0) {
+      return {
+        categoryId: 'globale' as ProductCategory,
+        categoryName: 'Marge Brute Globale Officine (Toutes Catégories)',
+        categoryCode: 'GLOBAL',
+        caHtCurrentMonth: 0,
+        margeHtCurrentMonth: 0,
+        currentMarginRatePct: 0,
+        movingAverage3mPct: 0,
+        deltaPoints: 0,
+        deltaRelativePct: 0,
+        m3MonthName: 'M-3',
+        m3MarginRatePct: 0,
+        m2MonthName: 'M-2',
+        m2MarginRatePct: 0,
+        m1MonthName: 'M-1',
+        m1MarginRatePct: 0,
+        alertThresholdPoints: 5.0,
+        severity: 'normal' as const,
+        isAlertTriggered: false,
+        estimatedLossEur: 0,
+        description: 'Consolidation des flux de marge de l\'officine.'
+      };
+    }
+
     const totalCaHt = categories.reduce((sum, c) => sum + c.caHtCurrentMonth, 0);
     const totalMargeHt = categories.reduce((sum, c) => sum + c.margeHtCurrentMonth, 0);
-    const currentRate = totalCaHt > 0 ? (totalMargeHt / totalCaHt) * 100 : 33.5;
+    const currentRate = totalCaHt > 0 ? (totalMargeHt / totalCaHt) * 100 : (isRealModeActive ? 0 : 33.5);
     
     // Global MM3M weighted
-    const mm3mWeighted = 35.8;
-    const delta = currentRate - mm3mWeighted;
+    const mm3mWeighted = isRealModeActive && totalCaHt === 0 ? 0 : 35.8;
+    const delta = mm3mWeighted > 0 ? currentRate - mm3mWeighted : 0;
     
     return {
       categoryId: 'globale' as ProductCategory,
@@ -46,20 +79,20 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
       currentMarginRatePct: Number(currentRate.toFixed(2)),
       movingAverage3mPct: mm3mWeighted,
       deltaPoints: Number(delta.toFixed(2)),
-      deltaRelativePct: Number(((delta / mm3mWeighted) * 100).toFixed(2)),
+      deltaRelativePct: mm3mWeighted > 0 ? Number(((delta / mm3mWeighted) * 100).toFixed(2)) : 0,
       m3MonthName: 'Mai 2026',
-      m3MarginRatePct: 36.1,
+      m3MarginRatePct: isRealModeActive ? 0 : 36.1,
       m2MonthName: 'Juin 2026',
-      m2MarginRatePct: 35.9,
+      m2MarginRatePct: isRealModeActive ? 0 : 35.9,
       m1MonthName: 'Juillet 2026',
-      m1MarginRatePct: 35.4,
+      m1MarginRatePct: isRealModeActive ? 0 : 35.4,
       alertThresholdPoints: 5.0,
-      severity: delta <= -5 ? 'critique' : delta <= -2 ? 'warning' : 'normal',
-      isAlertTriggered: delta <= -5,
-      estimatedLossEur: 2545.0,
+      severity: delta <= -5 && !isRealModeActive ? 'critique' : delta <= -2 && !isRealModeActive ? 'warning' : 'normal',
+      isAlertTriggered: delta <= -5 && !isRealModeActive,
+      estimatedLossEur: isRealModeActive ? 0 : 2545.0,
       description: 'Consolidation pondérée des 7 catégories de l\'officine (Rx, OTC, Para, DM, Veto, Bébé, Actes).'
     };
-  }, [categories]);
+  }, [categories, isRealModeActive]);
 
   // Current active data item for the gauge
   const currentData = useMemo(() => {
@@ -67,7 +100,7 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
       return globalSummary;
     }
     const found = categories.find(c => c.categoryId === selectedKey);
-    return found || categories[0];
+    return found || globalSummary;
   }, [selectedKey, categories, globalSummary]);
 
   // Health scale calculation:
@@ -75,6 +108,19 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
   // Orange: (MM3M - 5.0%) <= margin < (MM3M - 2.0%)
   // Green: margin >= (MM3M - 2.0%)
   const healthStatus = useMemo(() => {
+    if (isBlankState || currentData.movingAverage3mPct === 0) {
+      return {
+        level: 'vert' as const,
+        label: 'Mode Réel Prêt • Conforme',
+        subLabel: 'Surveillance en écoute des tickets LGO',
+        color: '#10b981',
+        badgeBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
+        textColor: 'text-emerald-600 dark:text-emerald-400',
+        icon: CheckCircle2,
+        actionRequired: false
+      };
+    }
+
     const mm3m = currentData.movingAverage3mPct;
     const current = currentData.currentMarginRatePct;
     const criticalThreshold = mm3m - 5.0;
@@ -114,12 +160,12 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
         actionRequired: false
       };
     }
-  }, [currentData]);
+  }, [currentData, isBlankState]);
 
   // SVG Gauge Math (Semi-circle arc 180 degrees from 180° to 0°)
   // We'll normalize the scale from minGauge to maxGauge
   const { minGauge, maxGauge, mm3mVal, currentVal, criticalThresh, warningThresh } = useMemo(() => {
-    const mm = currentData.movingAverage3mPct;
+    const mm = currentData.movingAverage3mPct || (isBlankState ? 33.0 : 35.8);
     const cur = currentData.currentMarginRatePct;
     const span = Math.max(15, Math.ceil(mm * 0.5));
     const minG = Math.max(0, Math.floor(mm - span));
@@ -133,7 +179,7 @@ export const MarginGaugeCard: React.FC<MarginGaugeCardProps> = ({ onNavigateTab 
       criticalThresh: mm - 5.0,
       warningThresh: mm - 2.0
     };
-  }, [currentData]);
+  }, [currentData, isBlankState]);
 
   // Convert value to degree on semi-circle (180deg at minGauge to 0deg at maxGauge)
   const valToAngle = (val: number) => {

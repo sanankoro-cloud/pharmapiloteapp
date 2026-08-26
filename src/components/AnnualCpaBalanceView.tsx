@@ -29,13 +29,18 @@ import { formatCurrency, formatDate, exportToCsv, generateFecExport } from '../u
 import { FecAndLettrageExportView } from './FecAndLettrageExportView';
 import { MOCK_FEC_ENTRIES_2026, MOCK_FEC_LETTRAGE_GROUPS } from '../data/mockFecData';
 import confetti from 'canvas-confetti';
+import { PharmacyProfile } from '../types/pharmacy';
 
 interface AnnualCpaBalanceViewProps {
   reports: AnnualCpaReport[];
+  pharmacyProfile?: PharmacyProfile;
+  onNavigateTab?: (tab: string) => void;
 }
 
 export const AnnualCpaBalanceView: React.FC<AnnualCpaBalanceViewProps> = ({
-  reports
+  reports,
+  pharmacyProfile,
+  onNavigateTab
 }) => {
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [activeReportTab, setActiveReportTab] = useState<'bilan' | 'sig' | 'interfimo' | 'liasse'>('bilan');
@@ -47,6 +52,36 @@ export const AnnualCpaBalanceView: React.FC<AnnualCpaBalanceViewProps> = ({
     setSuccessToast(msg);
     setTimeout(() => setSuccessToast(null), 3500);
   };
+
+  if (!report || reports.length === 0) {
+    return (
+      <div className="space-y-6 pb-12">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto shadow-xs">
+            <Scale className="w-7 h-7" />
+          </div>
+          <div className="max-w-md mx-auto space-y-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Aucun Bilan Annuel Clôturé
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              L'application est initialisée en mode réel à blanc. Les bilans officiels (Actif, Passif, Soldes Intermédiaires de Gestion, Ratios et Valorisation Interfimo) s'élaboreront au fur et à mesure de l'enregistrement de vos exercices comptables.
+            </p>
+          </div>
+          {onNavigateTab && (
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => onNavigateTab('dashboard')}
+                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition"
+              >
+                Retour au Tableau de Bord
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const handleExportAnnualFec = () => {
     generateFecExport(`${selectedYear}-12`);

@@ -319,3 +319,20 @@ export interface PharmacyFinancialSummary {
   pendingBankReconciliationsCount: number;
   activeBudgetAlertsCount: number;
 }
+
+export interface PharmacyProfile {
+  name: string; // Ex: Pharmacie de l'Épau ou Pharmacie Centrale
+  legalStructure: string; // Ex: SELARL, SARL, SAS, Exploitation Agricole & Pharmacie
+  managerName: string; // Ex: Dr N'Fafode Camara
+  address: string; // Ex: 74 Rue de l'Estérel
+  city: string; // Ex: Le Mans
+  postalCode: string; // Ex: 72100
+  phone?: string;
+  email?: string;
+  finessOrSiret?: string;
+  primaryBankName: string; // Ex: Crédit Agricole Pro
+  primaryIban?: string;
+  initialBankBalance: number;
+  businessSector: 'officine_pure' | 'agri_pharma' | 'polyvalent';
+}
+

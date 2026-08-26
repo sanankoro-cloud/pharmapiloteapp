@@ -19,8 +19,10 @@ import {
   Activity,
   Percent,
   Scale,
-  ShieldAlert
+  ShieldAlert,
+  Database
 } from 'lucide-react';
+
 
 interface MobileMoreMenuModalProps {
   isOpen: boolean;
@@ -31,6 +33,7 @@ interface MobileMoreMenuModalProps {
   onOpenBarcodeScanner: () => void;
   onOpenElectronicInvoicingModal?: () => void;
   onOpenResopharmaModal?: () => void;
+  onOpenDataManagementModal?: () => void;
   unreadCount: number;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
@@ -45,6 +48,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   onOpenBarcodeScanner,
   onOpenElectronicInvoicingModal,
   onOpenResopharmaModal,
+  onOpenDataManagementModal,
   unreadCount,
   isDarkMode = false,
   onToggleDarkMode
@@ -177,12 +181,35 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
 
         {/* Action List */}
         <div className="space-y-2 mt-2">
+          
+          {/* Data & Profile Management button */}
+          {onOpenDataManagementModal && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenDataManagementModal();
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-left transition shadow-xs cursor-pointer"
+            >
+              <div className="p-2.5 rounded-xl bg-indigo-600 text-white">
+                <Database className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                  <span>Mes Données & Profil Entreprise</span>
+                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 text-[9px] font-bold">CONFIG</span>
+                </div>
+                <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Personnaliser l'officine, importer CSV ou démarrer vierge</div>
+              </div>
+            </button>
+          )}
+
           <button
             onClick={() => {
               onClose();
               onOpenBarcodeScanner();
             }}
-            className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-left transition shadow-xs"
+            className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-left transition shadow-xs cursor-pointer"
           >
             <div className="p-2.5 rounded-xl bg-emerald-600 text-white">
               <Scan className="w-5 h-5" />
@@ -202,7 +229,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
                 onClose();
                 onOpenResopharmaModal();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/80 dark:bg-purple-950/40 text-left transition shadow-xs"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/80 dark:bg-purple-950/40 text-left transition shadow-xs cursor-pointer"
             >
               <div className="p-2.5 rounded-xl bg-purple-600 text-white">
                 <Network className="w-5 h-5" />
@@ -223,7 +250,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
                 onClose();
                 onOpenElectronicInvoicingModal();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/80 dark:bg-indigo-950/40 text-left transition shadow-xs"
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/80 dark:bg-indigo-950/40 text-left transition shadow-xs cursor-pointer"
             >
               <div className="p-2.5 rounded-xl bg-indigo-600 text-white">
                 <Building2 className="w-5 h-5" />
@@ -247,7 +274,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
                   onSelectTab(item.id);
                   onClose();
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition cursor-pointer"
               >
                 <div className={`p-2.5 rounded-xl ${item.color}`}>
                   <Icon className="w-5 h-5" />
@@ -265,7 +292,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
               onClose();
               onOpenNotifications();
             }}
-            className="w-full flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition bg-slate-50/50 dark:bg-slate-800/40"
+            className="w-full flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60">
@@ -298,4 +325,5 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
     </div>
   );
 };
+
 

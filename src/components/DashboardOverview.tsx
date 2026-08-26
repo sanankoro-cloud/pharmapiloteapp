@@ -38,11 +38,13 @@ import {
   DailySaleStat, 
   PushNotificationAlert, 
   ProductStock, 
-  SupplierOrder,
-  ExpenseItem
+  SupplierOrder, 
+  ExpenseItem 
 } from '../types/pharmacy';
 import { LcrStatement } from '../types/lcr';
 import { ResopharmaBordereau } from '../types/resopharma';
+import { CategoryMarginStatus } from '../types/marginWatchdog';
+import { PurchasePriceVariation, SupplierRfaContract } from '../types/purchasingAndDiscounts';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { CashFlowForecast30Days } from './CashFlowForecast30Days';
 import { MarginGaugeCard } from './MarginGaugeCard';
@@ -57,6 +59,10 @@ interface DashboardOverviewProps {
   resopharmaBordereaux?: ResopharmaBordereau[];
   expenses?: ExpenseItem[];
   orders?: SupplierOrder[];
+  categoryMargins?: CategoryMarginStatus[];
+  priceVariations?: PurchasePriceVariation[];
+  discountContracts?: SupplierRfaContract[];
+  isRealModeActive?: boolean;
   onNavigateTab: (tab: string) => void;
   onSyncBank: () => void;
   isSyncingBank: boolean;
@@ -73,6 +79,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   resopharmaBordereaux = [],
   expenses = [],
   orders = [],
+  categoryMargins = [],
+  priceVariations = [],
+  discountContracts = [],
+  isRealModeActive = false,
   onNavigateTab,
   onSyncBank,
   isSyncingBank,
@@ -80,19 +90,24 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   // TVA colors
   const TVA_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
-  const tvaPieData = todayStats.tvaBreakdown.map(item => ({
+  const tvaPieData = (todayStats?.tvaBreakdown || []).map(item => ({
     name: `TVA ${item.tvaRate}%`,
     value: item.baseHt,
     tvaAmount: item.tvaAmount
   }));
 
   const paymentData = [
-    { name: 'Carte Bancaire', value: todayStats.paymentBreakdown.cb, color: '#3b82f6' },
-    { name: 'Tiers-Payant Sécu CPAM', value: todayStats.paymentBreakdown.tiersPayantRo, color: '#10b981' },
-    { name: 'Tiers-Payant Mutuelles', value: todayStats.paymentBreakdown.tiersPayantRc, color: '#6366f1' },
-    { name: 'Espèces', value: todayStats.paymentBreakdown.especes, color: '#f59e0b' },
-    { name: 'Chèques', value: todayStats.paymentBreakdown.cheques, color: '#94a3b8' }
+    { name: 'Carte Bancaire', value: todayStats?.paymentBreakdown?.cb || 0, color: '#3b82f6' },
+    { name: 'Tiers-Payant Sécu CPAM', value: todayStats?.paymentBreakdown?.tiersPayantRo || 0, color: '#10b981' },
+    { name: 'Tiers-Payant Mutuelles', value: todayStats?.paymentBreakdown?.tiersPayantRc || 0, color: '#6366f1' },
+    { name: 'Espèces', value: todayStats?.paymentBreakdown?.especes || 0, color: '#f59e0b' },
+    { name: 'Chèques', value: todayStats?.paymentBreakdown?.cheques || 0, color: '#94a3b8' }
   ];
+
+  const marginAlerts = categoryMargins.filter(c => c.isAlertTriggered);
+  const criticalMarginCat = marginAlerts[0] || null;
+  const pendingHikes = priceVariations.filter(v => v.deltaAmountHt > 0 && v.status === 'non_traite');
+  const rfaAnomaliesCount = discountContracts.reduce((acc, c) => acc + c.discrepancies.filter(d => d.status === 'a_reclamer').length, 0);
 
   return (
     <div className="space-y-6 pb-12">
@@ -138,78 +153,82 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
-      {/* Critical Alert Bar if overdue orders or near-expiries exist */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Urgent Margin Watchdog Alert Card */}
-        <div 
-          onClick={() => onNavigateTab('surveillance_marges')}
-          className="cursor-pointer bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-500 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/80 dark:hover:bg-rose-900/50 transition shadow-md group"
-        >
-          <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 animate-pulse" />
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-xs font-black text-rose-900 dark:text-rose-200">
-                Alerte Marge Parapharmacie (-5,70 pts)
-              </h2>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-600 text-white animate-ping" />
+      {/* Critical Alert Bar if active alerts, overdue orders or near-expiries exist */}
+      {(notifications.length > 0 || overdueOrders.length > 0 || nearExpiryProducts.length > 0 || summary.activeBudgetAlertsCount > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Urgent Margin Watchdog Alert Card */}
+          {notifications.some(n => n.type === 'marge_chute' || (n.severity === 'critique' && n.title.toLowerCase().includes('marge'))) && (
+            <div 
+              onClick={() => onNavigateTab('surveillance_marges')}
+              className="cursor-pointer bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-500 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/80 dark:hover:bg-rose-900/50 transition shadow-md group"
+            >
+              <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xs font-black text-rose-900 dark:text-rose-200">
+                    Alerte Marge Parapharmacie (-5,70 pts)
+                  </h2>
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-black bg-rose-600 text-white animate-ping" />
+                </div>
+                <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+                  Marge à 36,80% vs 42,50% MM3M (chute &gt; 5%). Perte estimée : -1 986 €/mois. Cliquez pour corriger.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
-              Marge à 36,80% vs 42,50% MM3M (chute &gt; 5%). Perte estimée : -1 986 €/mois. Cliquez pour corriger.
-            </p>
-          </div>
+          )}
+
+          {overdueOrders.length > 0 && (
+            <div 
+              onClick={() => onNavigateTab('fournisseurs')}
+              className="cursor-pointer bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 transition shadow-xs"
+            >
+              <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xs font-bold text-rose-900 dark:text-rose-200">
+                  {overdueOrders.length} Facture(s) Fournisseur en Retard
+                </h2>
+                <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
+                  Dont {overdueOrders[0].supplierName} ({formatCurrency(overdueOrders[0].totalTtc)}). Risque de suspension des livraisons.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {nearExpiryProducts.length > 0 && (
+            <div 
+              onClick={() => onNavigateTab('stocks')}
+              className="cursor-pointer bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition shadow-xs"
+            >
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                  {nearExpiryProducts.length} Lots à Péremption Imminente (&lt;30j)
+                </h2>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                  Ex: {nearExpiryProducts[0].name} (DLUO {nearExpiryProducts[0].expiryDate}). Action de retour ou déstockage requise.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {summary.activeBudgetAlertsCount > 0 && (
+            <div 
+              onClick={() => onNavigateTab('depenses')}
+              className="cursor-pointer bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition shadow-xs"
+            >
+              <ShieldAlert className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="text-xs font-bold text-orange-900 dark:text-orange-200">
+                  {summary.activeBudgetAlertsCount} Alertes Budgétaires
+                </h2>
+                <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
+                  Dépassement sur les charges prévues de l'officine.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-
-        {overdueOrders.length > 0 && (
-          <div 
-            onClick={() => onNavigateTab('fournisseurs')}
-            className="cursor-pointer bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-rose-100/70 dark:hover:bg-rose-900/40 transition shadow-xs"
-          >
-            <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <h2 className="text-xs font-bold text-rose-900 dark:text-rose-200">
-                {overdueOrders.length} Facture(s) Fournisseur en Retard
-              </h2>
-              <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
-                Dont {overdueOrders[0].supplierName} ({formatCurrency(overdueOrders[0].totalTtc)}). Risque de suspension des livraisons.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {nearExpiryProducts.length > 0 && (
-          <div 
-            onClick={() => onNavigateTab('stocks')}
-            className="cursor-pointer bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 transition shadow-xs"
-          >
-            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <h2 className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                {nearExpiryProducts.length} Lots à Péremption Imminente (&lt;30j)
-              </h2>
-              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                Ex: {nearExpiryProducts[0].name} (DLUO {nearExpiryProducts[0].expiryDate}). Action de retour ou déstockage requise.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {summary.activeBudgetAlertsCount > 0 && (
-          <div 
-            onClick={() => onNavigateTab('depenses')}
-            className="cursor-pointer bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/60 rounded-xl p-3.5 flex items-start gap-3 hover:bg-orange-100/70 dark:hover:bg-orange-900/40 transition shadow-xs"
-          >
-            <ShieldAlert className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
-            <div>
-              <h2 className="text-xs font-bold text-orange-900 dark:text-orange-200">
-                {summary.activeBudgetAlertsCount} Alertes Budgétaires
-              </h2>
-              <p className="text-xs text-orange-700 dark:text-orange-300 mt-0.5">
-                Dépassement sur l'électricité climatisation et charges salariales ce mois-ci.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Primary KPI Grid (6 Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -314,7 +333,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Margin Gauge Card & Health Scale vs MM3M */}
-      <MarginGaugeCard onNavigateTab={onNavigateTab} />
+      <MarginGaugeCard 
+        categories={categoryMargins} 
+        isRealModeActive={isRealModeActive} 
+        onNavigateTab={onNavigateTab} 
+      />
 
       {/* 30-Day Cash Flow Forecast (NOEMIE/DRE vs LCR/Charges) */}
       <CashFlowForecast30Days
@@ -342,14 +365,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                Pic d'affluence : 10h-12h
+                {todayStats.totalTransactions > 0 ? "Pic d'affluence : 10h-12h" : "En attente des ventes du jour"}
               </span>
             </div>
           </div>
 
           <div className="h-64 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={todayStats.hourlyDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={todayStats.hourlyDistribution || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
@@ -404,7 +427,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {/* Payment bars */}
             <div className="space-y-3">
               {paymentData.map((item, idx) => {
-                const percentage = (item.value / todayStats.totalCaTtc) * 100;
+                const percentage = todayStats.totalCaTtc > 0 ? (item.value / todayStats.totalCaTtc) * 100 : 0;
                 return (
                   <div key={idx}>
                     <div className="flex justify-between text-xs font-semibold mb-1">
@@ -432,19 +455,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex items-center justify-between p-1.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                 <span className="text-emerald-700 dark:text-emerald-400 font-semibold">TVA 2.1% (Méd.)</span>
-                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(4200)}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(todayStats.tvaBreakdown?.find(t => t.tvaRate === 2.1)?.baseHt || 0)}</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                 <span className="text-amber-700 dark:text-amber-400 font-semibold">TVA 10% (OTC)</span>
-                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(650)}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(todayStats.tvaBreakdown?.find(t => t.tvaRate === 10)?.baseHt || 0)}</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                 <span className="text-purple-700 dark:text-purple-400 font-semibold">TVA 20% (Para)</span>
-                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(750.20)}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(todayStats.tvaBreakdown?.find(t => t.tvaRate === 20)?.baseHt || 0)}</span>
               </div>
               <div className="flex items-center justify-between p-1.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
                 <span className="text-blue-700 dark:text-blue-400 font-semibold">TVA 5.5% (Bébé)</span>
-                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(380)}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(todayStats.tvaBreakdown?.find(t => t.tvaRate === 5.5)?.baseHt || 0)}</span>
               </div>
             </div>
           </div>
@@ -456,49 +479,71 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Module 0: Surveillance des Marges en Temps Réel */}
         <div 
           onClick={() => onNavigateTab('surveillance_marges')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border-2 border-rose-400 dark:border-rose-700 bg-rose-50/30 dark:bg-rose-950/30 flex flex-col justify-between"
+          className={`cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border-2 flex flex-col justify-between ${
+            criticalMarginCat 
+              ? 'border-rose-400 dark:border-rose-700 bg-rose-50/30 dark:bg-rose-950/30' 
+              : 'border-slate-200 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+          }`}
         >
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-rose-600 animate-pulse" />
+              <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                criticalMarginCat ? 'text-rose-700 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'
+              }`}>
+                <ShieldAlert className={`w-4 h-4 ${criticalMarginCat ? 'text-rose-600 animate-pulse' : 'text-emerald-500'}`} />
                 Surveillance Marges Live
               </span>
-              <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
             </div>
             <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
               Watchdog Chute de Marge (&gt;5%)
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-              Détection temps réel par catégorie vs Moyenne Mobile 3M. Alerte critique Parapharmacie (-5,7 pts).
+              {criticalMarginCat 
+                ? `Alerte critique ${criticalMarginCat.categoryName} (${criticalMarginCat.deltaPoints > 0 ? '+' : ''}${criticalMarginCat.deltaPoints} pts vs MM3M).` 
+                : isRealModeActive
+                  ? "Surveillance en écoute des flux LGO. Aucune dégradation anormale de marge."
+                  : "Détection temps réel par catégorie vs Moyenne Mobile 3M."}
             </p>
           </div>
-          <div className="inline-flex items-center text-xs font-black text-white bg-rose-600 hover:bg-rose-700 px-3 py-1.5 rounded-lg border border-rose-500 shadow-xs self-start">
-            Audit Marges Live →
+          <div className={`inline-flex items-center text-xs font-black px-3 py-1.5 rounded-lg border shadow-xs self-start ${
+            criticalMarginCat 
+              ? 'text-white bg-rose-600 hover:bg-rose-700 border-rose-500' 
+              : 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 border-emerald-200/50'
+          }`}>
+            {criticalMarginCat ? 'Audit Marges Live →' : 'Consulter les Marges →'}
           </div>
         </div>
 
         {/* Module 1: Variations Prix d'Achat */}
         <div 
           onClick={() => onNavigateTab('variations_prix')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20 flex flex-col justify-between"
+          className={`cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border flex flex-col justify-between ${
+            pendingHikes.length > 0
+              ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20'
+              : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+          }`}
         >
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-rose-600 animate-pulse" />
+              <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                pendingHikes.length > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'
+              }`}>
+                <TrendingUp className={`w-4 h-4 ${pendingHikes.length > 0 ? 'text-rose-600 animate-pulse' : 'text-slate-400'}`} />
                 Variations Prix d'Achat
               </span>
-              <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
             </div>
             <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
               Alertes Hausses Tarifs & PUMP
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-              3 hausses détectées sur Pfizer & OCP (+13% Doliprane). Impact marge estimé à -2 878 €/an. Ajustez vos prix de vente.
+              {pendingHikes.length > 0
+                ? `${pendingHikes.length} hausse(s) détectée(s) sur vos commandes. Ajustez vos prix de vente.`
+                : 'Aucune hausse tarifaire fournisseur non traitée. PUMP officine stabilisé.'}
             </p>
           </div>
-          <div className="inline-flex items-center text-xs font-bold text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 hover:bg-rose-200 dark:hover:bg-rose-900/60 px-3 py-1.5 rounded-lg border border-rose-200/50 self-start">
+          <div className="inline-flex items-center text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 self-start">
             Traiter les Alertes →
           </div>
         </div>
@@ -506,21 +551,29 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         {/* Module 2: Contrôle Remises & RFA */}
         <div 
           onClick={() => onNavigateTab('remises_rfa')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/20 flex flex-col justify-between"
+          className={`cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border flex flex-col justify-between ${
+            rfaAnomaliesCount > 0
+              ? 'border-teal-200 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/20'
+              : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+          }`}
         >
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 flex items-center gap-1.5">
+              <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                rfaAnomaliesCount > 0 ? 'text-teal-700 dark:text-teal-400' : 'text-slate-600 dark:text-slate-400'
+              }`}>
                 <Percent className="w-4 h-4 text-teal-600" />
                 Audit Fournisseurs & RFA
               </span>
-              <ArrowUpRight className="w-4 h-4 text-teal-600 dark:text-teal-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
             </div>
             <h2 className="text-base font-black text-slate-900 dark:text-white mb-1">
               Contrôle Remises Commerciales
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-              18 949 € de RFA acquises. 2 sous-remises OCP/Urgo à réclamer (+515 €) et 6 881 € d'avoirs en attente.
+              {rfaAnomaliesCount > 0
+                ? `${rfaAnomaliesCount} anomalie(s) de remise à réclamer sur vos factures grossiste / direct.`
+                : 'Accords commerciaux et taux de remise conformes aux contrats.'}
             </p>
           </div>
           <div className="inline-flex items-center text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 hover:bg-teal-200 dark:hover:bg-teal-900/60 px-3 py-1.5 rounded-lg border border-teal-200/50 self-start">

@@ -62,10 +62,25 @@ import {
 import { formatCurrency, formatPercent } from '../utils/formatters';
 
 interface ProductMarginTherapeuticDashboardProps {
+  therapeuticClasses?: TherapeuticClassSummary[];
+  productMargins?: ProductMarginDetail[];
+  isRealModeActive?: boolean;
   onNavigateTab?: (tab: string) => void;
+  onResetToDemo?: () => void;
+  onOpenDataManagement?: () => void;
 }
 
-export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuticDashboardProps> = () => {
+export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuticDashboardProps> = ({
+  therapeuticClasses: propTherapeuticClasses,
+  productMargins: propProductMargins,
+  isRealModeActive = false,
+  onNavigateTab,
+  onResetToDemo,
+  onOpenDataManagement
+}) => {
+  const classesList = propTherapeuticClasses !== undefined ? propTherapeuticClasses : MOCK_THERAPEUTIC_CLASSES;
+  const productsList = propProductMargins !== undefined ? propProductMargins : MOCK_PRODUCT_MARGIN_DETAILS;
+
   // Main view tabs: 'references_table' | 'classes_ranking' | 'matrix_bcg' | 'simulator'
   const [activeSubTab, setActiveSubTab] = useState<'references_table' | 'classes_ranking' | 'matrix_bcg'>('references_table');
   
@@ -93,15 +108,55 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
   const [simulatedPumpHt, setSimulatedPumpHt] = useState<number>(0);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
+  // Dynamic Global Stats
+  const dynamicGlobalStats = useMemo(() => {
+    if (productsList.length === 0 || classesList.length === 0) {
+      return {
+        globalAverageMarginPct: 0,
+        totalCaHtMonthly: 0,
+        totalMarginHtMonthly: 0,
+        totalAnalyzedReferences: 0,
+        ultraProfitableReferencesCount: 0,
+        lowMarginReferencesCount: 0,
+        topSegmentByMarginPct: { name: 'Aucune donnée', marginPct: 0 },
+        topSegmentByMarginEur: { name: 'Aucune donnée', marginEur: 0 }
+      };
+    }
+    const totalCa = productsList.reduce((sum, p) => sum + (p.monthlyCaHt || 0), 0);
+    const totalMarge = productsList.reduce((sum, p) => sum + (p.monthlyMarginHt || 0), 0);
+    const avgMarginPct = totalCa > 0 ? (totalMarge / totalCa) * 100 : 0;
+    const sortedByPct = [...classesList].sort((a, b) => b.averageMarginRatePct - a.averageMarginRatePct);
+    const sortedByEur = [...classesList].sort((a, b) => b.totalMargeHt - a.totalMargeHt);
+    const ultraProfitable = productsList.filter(p => p.marginRatePct >= 45).length;
+    const lowMargin = productsList.filter(p => p.marginRatePct <= 20).length;
+
+    return {
+      globalAverageMarginPct: Number(avgMarginPct.toFixed(2)),
+      totalCaHtMonthly: totalCa,
+      totalMarginHtMonthly: totalMarge,
+      totalAnalyzedReferences: productsList.length,
+      ultraProfitableReferencesCount: ultraProfitable,
+      lowMarginReferencesCount: lowMargin,
+      topSegmentByMarginPct: {
+        name: sortedByPct[0]?.shortName || 'N/A',
+        marginPct: sortedByPct[0]?.averageMarginRatePct || 0
+      },
+      topSegmentByMarginEur: {
+        name: sortedByEur[0]?.shortName || 'N/A',
+        marginEur: sortedByEur[0]?.totalMargeHt || 0
+      }
+    };
+  }, [productsList, classesList]);
+
   // Selected Class Object
   const currentClassObj = useMemo(() => {
     if (selectedClassId === 'all') return null;
-    return MOCK_THERAPEUTIC_CLASSES.find(c => c.id === selectedClassId) || null;
-  }, [selectedClassId]);
+    return classesList.find(c => c.id === selectedClassId) || null;
+  }, [classesList, selectedClassId]);
 
   // Filtered and Sorted Products
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCT_MARGIN_DETAILS.filter(prod => {
+    return productsList.filter(prod => {
       // Class filter
       if (selectedClassId !== 'all' && prod.therapeuticClassId !== selectedClassId) {
         return false;
@@ -162,7 +217,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
 
       return filters.sortDirection === 'asc' ? valA - valB : valB - valA;
     });
-  }, [filters, selectedClassId]);
+  }, [productsList, filters, selectedClassId]);
 
   // Aggregate stats on filtered products
   const filteredStats = useMemo(() => {
@@ -379,12 +434,12 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
             </span>
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-white">
-            {formatPercent(MOCK_THEAPEUTIC_GLOBAL_STATS.globalAverageMarginPct)}
+            {formatPercent(dynamicGlobalStats.globalAverageMarginPct)}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-2 font-mono">
-            <span>CA Total: {formatCurrency(MOCK_THEAPEUTIC_GLOBAL_STATS.totalCaHtMonthly)} HT</span>
+            <span>CA Total: {formatCurrency(dynamicGlobalStats.totalCaHtMonthly)} HT</span>
             <span>•</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatCurrency(MOCK_THEAPEUTIC_GLOBAL_STATS.totalMarginHtMonthly)} Marge</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatCurrency(dynamicGlobalStats.totalMarginHtMonthly)} Marge</span>
           </div>
         </div>
 
@@ -397,10 +452,10 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
             </span>
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-            {formatPercent(MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginPct.marginPct)}
+            {formatPercent(dynamicGlobalStats.topSegmentByMarginPct.marginPct)}
           </div>
-          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 truncate" title={MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginPct.name}>
-            {MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginPct.name}
+          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 truncate" title={dynamicGlobalStats.topSegmentByMarginPct.name}>
+            {dynamicGlobalStats.topSegmentByMarginPct.name}
           </div>
         </div>
 
@@ -413,10 +468,10 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
             </span>
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-            {formatCurrency(MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginEur.marginEur)}
+            {formatCurrency(dynamicGlobalStats.topSegmentByMarginEur.marginEur)}
           </div>
-          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 truncate" title={MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginEur.name}>
-            {MOCK_THEAPEUTIC_GLOBAL_STATS.topSegmentByMarginEur.name}
+          <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 truncate" title={dynamicGlobalStats.topSegmentByMarginEur.name}>
+            {dynamicGlobalStats.topSegmentByMarginEur.name}
           </div>
         </div>
 
@@ -431,20 +486,20 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
           <div className="flex items-center gap-3">
             <div>
               <div className="text-xl font-black font-mono text-emerald-600">
-                {MOCK_THEAPEUTIC_GLOBAL_STATS.ultraProfitableReferencesCount}
+                {dynamicGlobalStats.ultraProfitableReferencesCount}
               </div>
               <div className="text-[10px] text-slate-400 font-bold uppercase">Pépites &gt; 45%</div>
             </div>
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
             <div>
               <div className="text-xl font-black font-mono text-slate-600 dark:text-slate-300">
-                {MOCK_THEAPEUTIC_GLOBAL_STATS.lowMarginReferencesCount}
+                {dynamicGlobalStats.lowMarginReferencesCount}
               </div>
               <div className="text-[10px] text-slate-400 font-bold uppercase">Régulées &lt; 20%</div>
             </div>
           </div>
           <div className="text-xs text-slate-500 mt-2 font-mono">
-            {MOCK_THEAPEUTIC_GLOBAL_STATS.totalAnalyzedReferences} références sous contrôle
+            {dynamicGlobalStats.totalAnalyzedReferences} références sous contrôle
           </div>
         </div>
       </div>
@@ -475,13 +530,13 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300'
             }`}
           >
-            <span>Toutes ({MOCK_THERAPEUTIC_CLASSES.length})</span>
+            <span>Toutes ({classesList.length})</span>
             <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-              {formatPercent(MOCK_THEAPEUTIC_GLOBAL_STATS.globalAverageMarginPct)}
+              {formatPercent(dynamicGlobalStats.globalAverageMarginPct)}
             </span>
           </button>
 
-          {MOCK_THERAPEUTIC_CLASSES.map(cls => {
+          {classesList.map(cls => {
             const isSelected = selectedClassId === cls.id;
             return (
               <button
@@ -954,7 +1009,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     layout="vertical"
-                    data={[...MOCK_THERAPEUTIC_CLASSES].sort((a, b) => b.averageMarginRatePct - a.averageMarginRatePct)}
+                    data={[...classesList].sort((a, b) => b.averageMarginRatePct - a.averageMarginRatePct)}
                     margin={{ top: 10, right: 30, left: 100, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:opacity-10" />
@@ -965,7 +1020,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                       contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
                     />
                     <Bar dataKey="averageMarginRatePct" radius={[0, 8, 8, 0]}>
-                      {[...MOCK_THERAPEUTIC_CLASSES].sort((a, b) => b.averageMarginRatePct - a.averageMarginRatePct).map((entry, index) => (
+                      {[...classesList].sort((a, b) => b.averageMarginRatePct - a.averageMarginRatePct).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Bar>
@@ -992,7 +1047,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     layout="vertical"
-                    data={[...MOCK_THERAPEUTIC_CLASSES].sort((a, b) => b.totalMargeHt - a.totalMargeHt)}
+                    data={[...classesList].sort((a, b) => b.totalMargeHt - a.totalMargeHt)}
                     margin={{ top: 10, right: 30, left: 100, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:opacity-10" />
@@ -1003,7 +1058,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                       contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
                     />
                     <Bar dataKey="totalMargeHt" fill="#6366f1" radius={[0, 8, 8, 0]}>
-                      {[...MOCK_THERAPEUTIC_CLASSES].sort((a, b) => b.totalMargeHt - a.totalMargeHt).map((entry, index) => (
+                      {[...classesList].sort((a, b) => b.totalMargeHt - a.totalMargeHt).map((entry, index) => (
                         <Cell key={`cell-marge-${index}`} fill={entry.color} />
                       ))}
                     </Bar>
@@ -1016,11 +1071,11 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
           {/* Cards Grid: Full Details for all 10 Classes */}
           <div className="space-y-3">
             <h3 className="text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Synthèse Détaillée des 10 Classes Thérapeutiques
+              Synthèse Détaillée des {classesList.length} Classes Thérapeutiques
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {MOCK_THERAPEUTIC_CLASSES.map((cls) => (
+              {classesList.map((cls) => (
                 <div 
                   key={cls.id}
                   className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition"
@@ -1173,7 +1228,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                   <span className="text-[10px] text-slate-400 font-mono">Marge &gt; 35% • Vol &lt; 800 btes</span>
                 </div>
                 <div className="space-y-2">
-                  {MOCK_THERAPEUTIC_CLASSES.filter(c => c.averageMarginRatePct >= 35 && c.monthlyVolumeUnits < 800).map(c => (
+                  {classesList.filter(c => c.averageMarginRatePct >= 35 && c.monthlyVolumeUnits < 800).map(c => (
                     <div key={c.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
@@ -1197,7 +1252,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                   <span className="text-[10px] text-slate-400 font-mono">Marge &gt; 35% • Vol &gt; 800 btes</span>
                 </div>
                 <div className="space-y-2">
-                  {MOCK_THERAPEUTIC_CLASSES.filter(c => c.averageMarginRatePct >= 35 && c.monthlyVolumeUnits >= 800).map(c => (
+                  {classesList.filter(c => c.averageMarginRatePct >= 35 && c.monthlyVolumeUnits >= 800).map(c => (
                     <div key={c.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/80 flex items-center justify-between text-xs shadow-2xs">
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
@@ -1221,7 +1276,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                   <span className="text-[10px] text-slate-400 font-mono">Marge &lt; 35% • Vol &lt; 1000 btes</span>
                 </div>
                 <div className="space-y-2">
-                  {MOCK_THERAPEUTIC_CLASSES.filter(c => c.averageMarginRatePct < 35 && c.monthlyVolumeUnits < 1000).map(c => (
+                  {classesList.filter(c => c.averageMarginRatePct < 35 && c.monthlyVolumeUnits < 1000).map(c => (
                     <div key={c.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>
@@ -1245,7 +1300,7 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                   <span className="text-[10px] text-slate-400 font-mono">Marge &lt; 35% • Vol &gt; 1000 btes</span>
                 </div>
                 <div className="space-y-2">
-                  {MOCK_THERAPEUTIC_CLASSES.filter(c => c.averageMarginRatePct < 35 && c.monthlyVolumeUnits >= 1000).map(c => (
+                  {classesList.filter(c => c.averageMarginRatePct < 35 && c.monthlyVolumeUnits >= 1000).map(c => (
                     <div key={c.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800/80 flex items-center justify-between text-xs">
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white">{c.name}</div>

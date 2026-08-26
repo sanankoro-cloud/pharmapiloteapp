@@ -108,6 +108,8 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
       matchesStatus = p.stockQty <= p.minThreshold;
     } else if (filterStatus === 'refrigerated') {
       matchesStatus = !!p.isRefrigerated;
+    } else if (filterStatus === 'mitm') {
+      matchesStatus = !!(p.isEssential || (p as any).isMitm);
     }
 
     return matchesSearch && matchesCategory && matchesStatus;
@@ -542,6 +544,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
                 className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200 font-medium"
               >
                 <option value="all">Tous les états</option>
+                <option value="mitm">🛡️ MITM (Médicament Vital / Ruptures)</option>
                 <option value="near_expiry">⚠️ Péremption &lt; 60 jours</option>
                 <option value="low_stock">📉 Stock Faible / Rupture</option>
                 <option value="refrigerated">❄️ Chaîne du froid (Frigo 2-8°C)</option>
@@ -579,6 +582,15 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
                             {prod.isRefrigerated && (
                               <span title="Frigo 2-8°C" className="text-sky-500 dark:text-sky-400">
                                 <Thermometer className="w-3.5 h-3.5 inline" />
+                              </span>
+                            )}
+                            {(prod.isEssential || (prod as any).isMitm) && (
+                              <span 
+                                title="Médicament d'Intérêt Thérapeutique Majeur (MITM / Vital)" 
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-black"
+                              >
+                                <ShieldAlert className="w-3 h-3" />
+                                MITM
                               </span>
                             )}
                           </div>

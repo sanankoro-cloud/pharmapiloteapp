@@ -8,8 +8,25 @@ import {
   DailySaleStat, 
   MonthlyAccountingReport, 
   PushNotificationAlert, 
-  PharmacyFinancialSummary 
+  PharmacyFinancialSummary,
+  PharmacyProfile 
 } from '../types/pharmacy';
+
+export const DEFAULT_PHARMACY_PROFILE: PharmacyProfile = {
+  name: "Pharmacie de l'Épau",
+  legalStructure: "SELARL",
+  managerName: "Dr N'Fafode Camara",
+  address: "74 Rue de l'Estérel",
+  city: "Le Mans",
+  postalCode: "72100",
+  phone: "02 43 84 12 34",
+  email: "contact@pharmacie-epau.fr",
+  finessOrSiret: "720012345",
+  primaryBankName: "Crédit Agricole Pro",
+  primaryIban: "FR76 1820 6001 2345 6789 01",
+  initialBankBalance: 16708.87,
+  businessSector: "polyvalent"
+};
 
 export const INITIAL_SUMMARY: PharmacyFinancialSummary = {
   todayCaTtc: 6480.50,
@@ -27,6 +44,57 @@ export const INITIAL_SUMMARY: PharmacyFinancialSummary = {
   criticalExpiriesCount: 3,
   pendingBankReconciliationsCount: 0,
   activeBudgetAlertsCount: 1
+};
+
+export const BLANK_SUMMARY: PharmacyFinancialSummary = {
+  todayCaTtc: 0,
+  todayCaTarget: 5000.00,
+  todayMarginPct: 0,
+  monthCaTtc: 0,
+  monthCaTarget: 120000.00,
+  monthGrowthN1: 0,
+  currentBankBalance: 0,
+  accountingBalance: 0,
+  pendingCustomerReceivables: 0,
+  pendingSupplierPayables: 0,
+  totalStockValuePump: 0,
+  totalStockValuePublic: 0,
+  criticalExpiriesCount: 0,
+  pendingBankReconciliationsCount: 0,
+  activeBudgetAlertsCount: 0
+};
+
+export const BLANK_DAILY_STATS: DailySaleStat = {
+  date: "Aujourd'hui",
+  totalCaHt: 0,
+  totalCaTtc: 0,
+  marginHt: 0,
+  marginRate: 0,
+  prescriptionsCount: 0,
+  otcCustomersCount: 0,
+  totalTransactions: 0,
+  averageBasketTtc: 0,
+  hourlyDistribution: [
+    { hour: '08h30-10h', amountTtc: 0, transactions: 0 },
+    { hour: '10h-12h', amountTtc: 0, transactions: 0 },
+    { hour: '12h-14h', amountTtc: 0, transactions: 0 },
+    { hour: '14h-16h', amountTtc: 0, transactions: 0 },
+    { hour: '16h-18h', amountTtc: 0, transactions: 0 },
+    { hour: '18h-19h30', amountTtc: 0, transactions: 0 }
+  ],
+  tvaBreakdown: [
+    { tvaRate: 2.1, baseHt: 0, tvaAmount: 0 },
+    { tvaRate: 5.5, baseHt: 0, tvaAmount: 0 },
+    { tvaRate: 10.0, baseHt: 0, tvaAmount: 0 },
+    { tvaRate: 20.0, baseHt: 0, tvaAmount: 0 }
+  ],
+  paymentBreakdown: {
+    cb: 0,
+    especes: 0,
+    tiersPayantRo: 0,
+    tiersPayantRc: 0,
+    cheques: 0
+  }
 };
 
 export const MOCK_PRODUCTS: ProductStock[] = [
@@ -1879,6 +1947,27 @@ export const MOCK_MONTHLY_REPORTS: MonthlyAccountingReport[] = [
     exportFormats: ['PDF', 'EXCEL', 'FEC']
   }
 ];
+
+export const BLANK_DAILY_STAT: DailySaleStat = {
+  date: 'Aujourd\'hui',
+  totalCaHt: 0,
+  totalCaTtc: 0,
+  marginHt: 0,
+  marginRate: 0,
+  prescriptionsCount: 0,
+  otcCustomersCount: 0,
+  totalTransactions: 0,
+  averageBasketTtc: 0,
+  hourlyDistribution: [],
+  tvaBreakdown: [],
+  paymentBreakdown: {
+    cb: 0,
+    especes: 0,
+    tiersPayantRo: 0,
+    tiersPayantRc: 0,
+    cheques: 0
+  }
+};
 
 export const MOCK_NOTIFICATIONS: PushNotificationAlert[] = [
   {

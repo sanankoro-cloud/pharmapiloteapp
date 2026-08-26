@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   INITIAL_SUMMARY, 
+  BLANK_SUMMARY,
+  DEFAULT_PHARMACY_PROFILE,
   MOCK_PRODUCTS, 
   MOCK_SUPPLIERS_ORDERS, 
   MOCK_EXPENSES, 
@@ -45,7 +47,9 @@ import {
   BankTransaction, 
   CompetitorPriceComparison, 
   PushNotificationAlert, 
-  PharmacyFinancialSummary 
+  PharmacyFinancialSummary,
+  PharmacyProfile,
+  MonthlyAccountingReport
 } from './types/pharmacy';
 import { 
   ElectronicInvoice, 
@@ -100,17 +104,105 @@ import { MobileMoreMenuModal } from './components/MobileMoreMenuModal';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { ElectronicInvoicingVaultModal } from './components/ElectronicInvoicingVaultModal';
 import { ResopharmaConnectorModal } from './components/ResopharmaConnectorModal';
+import { DataManagementModal } from './components/DataManagementModal';
 
 export default function App() {
   // App state
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [summary, setSummary] = useState<PharmacyFinancialSummary>(INITIAL_SUMMARY);
-  const [products, setProducts] = useState<ProductStock[]>(MOCK_PRODUCTS);
-  const [orders, setOrders] = useState<SupplierOrder[]>(MOCK_SUPPLIERS_ORDERS);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>(MOCK_EXPENSES);
-  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>(MOCK_BANK_TRANSACTIONS);
-  const [competitorPrices, setCompetitorPrices] = useState<CompetitorPriceComparison[]>(MOCK_COMPETITOR_PRICES);
-  const [notifications, setNotifications] = useState<PushNotificationAlert[]>(MOCK_NOTIFICATIONS);
+
+  // Real Mode / Demo Mode State & Pharmacy Profile State
+  const [isRealModeActive, setIsRealModeActive] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_is_real_mode');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [pharmacyProfile, setPharmacyProfile] = useState<PharmacyProfile>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_profile_custom');
+      return saved ? JSON.parse(saved) : DEFAULT_PHARMACY_PROFILE;
+    } catch {
+      return DEFAULT_PHARMACY_PROFILE;
+    }
+  });
+
+  const [isDataManagementModalOpen, setIsDataManagementModalOpen] = useState(false);
+
+  // Financial & Operational Collections (Persisted in localStorage)
+  const [summary, setSummary] = useState<PharmacyFinancialSummary>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_summary');
+      return saved ? JSON.parse(saved) : INITIAL_SUMMARY;
+    } catch {
+      return INITIAL_SUMMARY;
+    }
+  });
+
+  const [products, setProducts] = useState<ProductStock[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_products');
+      return saved ? JSON.parse(saved) : MOCK_PRODUCTS;
+    } catch {
+      return MOCK_PRODUCTS;
+    }
+  });
+
+  const [orders, setOrders] = useState<SupplierOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_orders');
+      return saved ? JSON.parse(saved) : MOCK_SUPPLIERS_ORDERS;
+    } catch {
+      return MOCK_SUPPLIERS_ORDERS;
+    }
+  });
+
+  const [expenses, setExpenses] = useState<ExpenseItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_expenses');
+      return saved ? JSON.parse(saved) : MOCK_EXPENSES;
+    } catch {
+      return MOCK_EXPENSES;
+    }
+  });
+
+  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_bank_transactions');
+      return saved ? JSON.parse(saved) : MOCK_BANK_TRANSACTIONS;
+    } catch {
+      return MOCK_BANK_TRANSACTIONS;
+    }
+  });
+
+  const [competitorPrices, setCompetitorPrices] = useState<CompetitorPriceComparison[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_competitor_prices');
+      return saved ? JSON.parse(saved) : MOCK_COMPETITOR_PRICES;
+    } catch {
+      return MOCK_COMPETITOR_PRICES;
+    }
+  });
+
+  const [notifications, setNotifications] = useState<PushNotificationAlert[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_notifications');
+      return saved ? JSON.parse(saved) : MOCK_NOTIFICATIONS;
+    } catch {
+      return MOCK_NOTIFICATIONS;
+    }
+  });
+
+  const [monthlyReports, setMonthlyReports] = useState<MonthlyAccountingReport[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_monthly_reports');
+      return saved ? JSON.parse(saved) : MOCK_MONTHLY_REPORTS;
+    } catch {
+      return MOCK_MONTHLY_REPORTS;
+    }
+  });
   
   // Connectors Health & API Status State (Resopharma, CA, SY PDP, Chorus Pro...)
   const [connectorsHealth, setConnectorsHealth] = useState<ConnectorHealthItem[]>(INITIAL_CONNECTORS_HEALTH);
@@ -118,15 +210,36 @@ export default function App() {
   const [isPingingAllConnectors, setIsPingingAllConnectors] = useState(false);
 
   // Audit Logs (Journal d'audit & contrôle interne des actions)
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(MOCK_AUDIT_LOGS);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_audit_logs');
+      return saved ? JSON.parse(saved) : MOCK_AUDIT_LOGS;
+    } catch {
+      return MOCK_AUDIT_LOGS;
+    }
+  });
   const [availableOperators, setAvailableOperators] = useState<OperatorProfile[]>(DEFAULT_OPERATORS);
   const [currentOperator, setCurrentOperator] = useState<OperatorProfile>(DEFAULT_OPERATORS[0]);
 
   // LCR (Lettres de Change Relevé) & Traites state
-  const [lcrStatements, setLcrStatements] = useState<LcrStatement[]>(MOCK_LCR_STATEMENTS);
+  const [lcrStatements, setLcrStatements] = useState<LcrStatement[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_lcr_statements');
+      return saved ? JSON.parse(saved) : MOCK_LCR_STATEMENTS;
+    } catch {
+      return MOCK_LCR_STATEMENTS;
+    }
+  });
 
   // Electronic Invoicing Vault state (SY by Cegedim & Factur-X)
-  const [electronicInvoices, setElectronicInvoices] = useState<ElectronicInvoice[]>(MOCK_ELECTRONIC_INVOICES);
+  const [electronicInvoices, setElectronicInvoices] = useState<ElectronicInvoice[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_electronic_invoices');
+      return saved ? JSON.parse(saved) : MOCK_ELECTRONIC_INVOICES;
+    } catch {
+      return MOCK_ELECTRONIC_INVOICES;
+    }
+  });
   const [vaultConnectors, setVaultConnectors] = useState<VaultConnectorConfig[]>(INITIAL_VAULT_CONNECTORS);
   const [vaultSyncLogs, setVaultSyncLogs] = useState<VaultSyncLog[]>(MOCK_VAULT_SYNC_LOGS);
   const [isElectronicInvoicingModalOpen, setIsElectronicInvoicingModalOpen] = useState(false);
@@ -134,19 +247,47 @@ export default function App() {
 
   // RESOPHARMA Connector State (Télétransmission SESAM-Vitale, Retours NOEMIE & Mutuelles DRE)
   const [resopharmaConfig, setResopharmaConfig] = useState<ResopharmaConnectorConfig>(INITIAL_RESOPHARMA_CONFIG);
-  const [resopharmaBordereaux, setResopharmaBordereaux] = useState<ResopharmaBordereau[]>(MOCK_RESOPHARMA_BORDEREAUX);
+  const [resopharmaBordereaux, setResopharmaBordereaux] = useState<ResopharmaBordereau[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_resopharma_bordereaux');
+      return saved ? JSON.parse(saved) : MOCK_RESOPHARMA_BORDEREAUX;
+    } catch {
+      return MOCK_RESOPHARMA_BORDEREAUX;
+    }
+  });
   const [resopharmaSyncLogs, setResopharmaSyncLogs] = useState<ResopharmaSyncLog[]>(MOCK_RESOPHARMA_SYNC_LOGS);
   const [isResopharmaModalOpen, setIsResopharmaModalOpen] = useState(false);
   const [isSyncingResopharma, setIsSyncingResopharma] = useState(false);
 
   // Purchasing Price Variations & Laboratory Tariff Alert State
-  const [priceVariations, setPriceVariations] = useState<PurchasePriceVariation[]>(MOCK_PURCHASE_PRICE_VARIATIONS);
+  const [priceVariations, setPriceVariations] = useState<PurchasePriceVariation[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_price_variations');
+      return saved ? JSON.parse(saved) : MOCK_PURCHASE_PRICE_VARIATIONS;
+    } catch {
+      return MOCK_PURCHASE_PRICE_VARIATIONS;
+    }
+  });
 
   // Commercial Discounts & RFA (Remises de Fin d'Année) Audit State
-  const [discountContracts, setDiscountContracts] = useState<SupplierRfaContract[]>(MOCK_SUPPLIER_RFA_CONTRACTS);
+  const [discountContracts, setDiscountContracts] = useState<SupplierRfaContract[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_discount_contracts');
+      return saved ? JSON.parse(saved) : MOCK_SUPPLIER_RFA_CONTRACTS;
+    } catch {
+      return MOCK_SUPPLIER_RFA_CONTRACTS;
+    }
+  });
 
   // Annual CPA Balance Sheet & Interfimo Valuation State
-  const [annualCpaReports, setAnnualCpaReports] = useState<AnnualCpaReport[]>(MOCK_ANNUAL_CPA_REPORTS);
+  const [annualCpaReports, setAnnualCpaReports] = useState<AnnualCpaReport[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_annual_cpa_reports');
+      return saved ? JSON.parse(saved) : MOCK_ANNUAL_CPA_REPORTS;
+    } catch {
+      return MOCK_ANNUAL_CPA_REPORTS;
+    }
+  });
 
   // UI modals & indicators
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -183,6 +324,143 @@ export default function App() {
     }
   }, [isDarkMode]);
 
+  // Sync state changes with localStorage for persistent real/custom data
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_is_real_mode', String(isRealModeActive));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [isRealModeActive]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_profile_custom', JSON.stringify(pharmacyProfile));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [pharmacyProfile]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_summary', JSON.stringify(summary));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [summary]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_products', JSON.stringify(products));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_orders', JSON.stringify(orders));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [orders]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_expenses', JSON.stringify(expenses));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [expenses]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_bank_transactions', JSON.stringify(bankTransactions));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [bankTransactions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_lcr_statements', JSON.stringify(lcrStatements));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [lcrStatements]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_notifications', JSON.stringify(notifications));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [notifications]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_monthly_reports', JSON.stringify(monthlyReports));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [monthlyReports]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_annual_cpa_reports', JSON.stringify(annualCpaReports));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [annualCpaReports]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_price_variations', JSON.stringify(priceVariations));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [priceVariations]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_discount_contracts', JSON.stringify(discountContracts));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [discountContracts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_competitor_prices', JSON.stringify(competitorPrices));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [competitorPrices]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_electronic_invoices', JSON.stringify(electronicInvoices));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [electronicInvoices]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_resopharma_bordereaux', JSON.stringify(resopharmaBordereaux));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [resopharmaBordereaux]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_audit_logs', JSON.stringify(auditLogs));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [auditLogs]);
+
   const handleToggleDarkMode = () => {
     setIsDarkMode(prev => {
       const next = !prev;
@@ -195,6 +473,154 @@ export default function App() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // Handlers for Data Management (Real Mode / Blank / Restore / Reset)
+  const handleResetToDemoData = () => {
+    setProducts(MOCK_PRODUCTS);
+    setOrders(MOCK_SUPPLIERS_ORDERS);
+    setExpenses(MOCK_EXPENSES);
+    setBankTransactions(MOCK_BANK_TRANSACTIONS);
+    setLcrStatements(MOCK_LCR_STATEMENTS);
+    setNotifications(MOCK_NOTIFICATIONS);
+    setMonthlyReports(MOCK_MONTHLY_REPORTS);
+    setAnnualCpaReports(MOCK_ANNUAL_CPA_REPORTS);
+    setPriceVariations(MOCK_PURCHASE_PRICE_VARIATIONS);
+    setDiscountContracts(MOCK_SUPPLIER_RFA_CONTRACTS);
+    setCompetitorPrices(MOCK_COMPETITOR_PRICES);
+    setElectronicInvoices(MOCK_ELECTRONIC_INVOICES);
+    setResopharmaBordereaux(MOCK_RESOPHARMA_BORDEREAUX);
+    setAuditLogs(MOCK_AUDIT_LOGS);
+    setSummary(INITIAL_SUMMARY);
+    setPharmacyProfile(DEFAULT_PHARMACY_PROFILE);
+    setIsRealModeActive(false);
+
+    // Persist immediately in localStorage
+    localStorage.setItem('pharmacy_products', JSON.stringify(MOCK_PRODUCTS));
+    localStorage.setItem('pharmacy_orders', JSON.stringify(MOCK_SUPPLIERS_ORDERS));
+    localStorage.setItem('pharmacy_expenses', JSON.stringify(MOCK_EXPENSES));
+    localStorage.setItem('pharmacy_bank_transactions', JSON.stringify(MOCK_BANK_TRANSACTIONS));
+    localStorage.setItem('pharmacy_lcr_statements', JSON.stringify(MOCK_LCR_STATEMENTS));
+    localStorage.setItem('pharmacy_notifications', JSON.stringify(MOCK_NOTIFICATIONS));
+    localStorage.setItem('pharmacy_monthly_reports', JSON.stringify(MOCK_MONTHLY_REPORTS));
+    localStorage.setItem('pharmacy_annual_cpa_reports', JSON.stringify(MOCK_ANNUAL_CPA_REPORTS));
+    localStorage.setItem('pharmacy_price_variations', JSON.stringify(MOCK_PURCHASE_PRICE_VARIATIONS));
+    localStorage.setItem('pharmacy_discount_contracts', JSON.stringify(MOCK_SUPPLIER_RFA_CONTRACTS));
+    localStorage.setItem('pharmacy_competitor_prices', JSON.stringify(MOCK_COMPETITOR_PRICES));
+    localStorage.setItem('pharmacy_electronic_invoices', JSON.stringify(MOCK_ELECTRONIC_INVOICES));
+    localStorage.setItem('pharmacy_resopharma_bordereaux', JSON.stringify(MOCK_RESOPHARMA_BORDEREAUX));
+    localStorage.setItem('pharmacy_audit_logs', JSON.stringify(MOCK_AUDIT_LOGS));
+    localStorage.setItem('pharmacy_summary', JSON.stringify(INITIAL_SUMMARY));
+    localStorage.setItem('pharmacy_profile_custom', JSON.stringify(DEFAULT_PHARMACY_PROFILE));
+    localStorage.setItem('pharmacy_is_real_mode', 'false');
+
+    showToast("Jeu de données de démonstration réinitialisé avec succès.");
+  };
+
+  const handleClearAllDataToBlank = () => {
+    setProducts([]);
+    setOrders([]);
+    setExpenses([]);
+    setBankTransactions([]);
+    setLcrStatements([]);
+    setNotifications([]);
+    setMonthlyReports([]);
+    setAnnualCpaReports([]);
+    setPriceVariations([]);
+    setDiscountContracts([]);
+    setCompetitorPrices([]);
+    setElectronicInvoices([]);
+    setResopharmaBordereaux([]);
+    setAuditLogs([]);
+    setSummary(BLANK_SUMMARY);
+    setIsRealModeActive(true);
+
+    // Clear all from localStorage
+    localStorage.setItem('pharmacy_products', JSON.stringify([]));
+    localStorage.setItem('pharmacy_orders', JSON.stringify([]));
+    localStorage.setItem('pharmacy_expenses', JSON.stringify([]));
+    localStorage.setItem('pharmacy_bank_transactions', JSON.stringify([]));
+    localStorage.setItem('pharmacy_lcr_statements', JSON.stringify([]));
+    localStorage.setItem('pharmacy_notifications', JSON.stringify([]));
+    localStorage.setItem('pharmacy_monthly_reports', JSON.stringify([]));
+    localStorage.setItem('pharmacy_annual_cpa_reports', JSON.stringify([]));
+    localStorage.setItem('pharmacy_price_variations', JSON.stringify([]));
+    localStorage.setItem('pharmacy_discount_contracts', JSON.stringify([]));
+    localStorage.setItem('pharmacy_competitor_prices', JSON.stringify([]));
+    localStorage.setItem('pharmacy_electronic_invoices', JSON.stringify([]));
+    localStorage.setItem('pharmacy_resopharma_bordereaux', JSON.stringify([]));
+    localStorage.setItem('pharmacy_audit_logs', JSON.stringify([]));
+    localStorage.setItem('pharmacy_summary', JSON.stringify(BLANK_SUMMARY));
+    localStorage.setItem('pharmacy_is_real_mode', 'true');
+
+    showToast("Application réinitialisée à 100% à blanc (Alertes, rapports comptables, écritures et stocks effacés).");
+  };
+
+  const handleRestoreFromJsonBackup = (data: {
+    pharmacyProfile?: PharmacyProfile;
+    officineProfile?: PharmacyProfile;
+    summary?: PharmacyFinancialSummary;
+    products?: ProductStock[];
+    orders?: SupplierOrder[];
+    expenses?: ExpenseItem[];
+    bankTransactions?: BankTransaction[];
+    lcrStatements?: LcrStatement[];
+    notifications?: PushNotificationAlert[];
+    monthlyReports?: MonthlyAccountingReport[];
+    annualCpaReports?: AnnualCpaReport[];
+    priceVariations?: PurchasePriceVariation[];
+    discountContracts?: SupplierRfaContract[];
+    competitorPrices?: CompetitorPriceComparison[];
+    electronicInvoices?: ElectronicInvoice[];
+    resopharmaBordereaux?: ResopharmaBordereau[];
+    isRealMode?: boolean;
+    isRealModeActive?: boolean;
+  }) => {
+    const prof = data.pharmacyProfile || data.officineProfile;
+    if (prof) setPharmacyProfile(prof);
+    if (data.summary) setSummary(data.summary);
+    if (data.products) setProducts(data.products);
+    if (data.orders) setOrders(data.orders);
+    if (data.expenses) setExpenses(data.expenses);
+    if (data.bankTransactions) setBankTransactions(data.bankTransactions);
+    if (data.lcrStatements) setLcrStatements(data.lcrStatements);
+    if (data.notifications) setNotifications(data.notifications);
+    if (data.monthlyReports) setMonthlyReports(data.monthlyReports);
+    if (data.annualCpaReports) setAnnualCpaReports(data.annualCpaReports);
+    if (data.priceVariations) setPriceVariations(data.priceVariations);
+    if (data.discountContracts) setDiscountContracts(data.discountContracts);
+    if (data.competitorPrices) setCompetitorPrices(data.competitorPrices);
+    if (data.electronicInvoices) setElectronicInvoices(data.electronicInvoices);
+    if (data.resopharmaBordereaux) setResopharmaBordereaux(data.resopharmaBordereaux);
+    const realMode = data.isRealMode ?? data.isRealModeActive;
+    if (realMode !== undefined) setIsRealModeActive(realMode);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    showToast("Sauvegarde intégrale restaurée avec succès !");
+  };
+
+  const handleUpdatePharmacyProfile = (updatedProfile: PharmacyProfile) => {
+    setPharmacyProfile(updatedProfile);
+    showToast(`Profil de « ${updatedProfile.name} » mis à jour.`);
+  };
+
+  const handleToggleRealMode = (enableReal: boolean) => {
+    setIsRealModeActive(enableReal);
+    if (enableReal) {
+      showToast("Mode Données Réelles activé (Vos données d'officine sont prioritaires).");
+    } else {
+      showToast("Mode Démonstration activé.");
+    }
+  };
+
+  const handleImportBulkOrders = (imported: SupplierOrder[]) => {
+    setOrders(prev => [...imported, ...prev]);
+    showToast(`${imported.length} commandes et factures importées avec succès.`);
+  };
+
+  const handleImportBulkExpenses = (imported: ExpenseItem[]) => {
+    setExpenses(prev => [...imported, ...prev]);
+    showToast(`${imported.length} dépenses récurrentes importées avec succès.`);
+  };
+
 
   // Helper to log user action in real-time
   const logUserAction = (entry: Omit<AuditLogEntry, 'id' | 'timestamp' | 'operatorName' | 'operatorRole'> & { operatorName?: string; operatorRole?: AuditOperatorRole }) => {
@@ -1678,6 +2104,9 @@ export default function App() {
         onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
         onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
         onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
+        onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
+        pharmacyProfile={pharmacyProfile}
+        isRealModeActive={isRealModeActive}
         onSyncBank={handleSyncBank}
         isSyncingBank={isSyncingBank}
         lastBankSyncTime={lastBankSyncTime}
@@ -1686,6 +2115,7 @@ export default function App() {
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
       />
+
 
       {/* Desktop Navigation Tabs */}
       <NavigationTabs
@@ -1795,6 +2225,8 @@ export default function App() {
         {activeTab === 'bilan_annuel' && (
           <AnnualCpaBalanceView
             reports={annualCpaReports}
+            pharmacyProfile={pharmacyProfile}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -1866,7 +2298,10 @@ export default function App() {
 
         {activeTab === 'rapports' && (
           <AccountingReportsView
-            reports={MOCK_MONTHLY_REPORTS}
+            reports={monthlyReports}
+            pharmacyProfile={pharmacyProfile}
+            isRealModeActive={isRealModeActive}
+            onNavigateTab={setActiveTab}
           />
         )}
       </main>
@@ -1903,6 +2338,7 @@ export default function App() {
         onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
         onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
         onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
+        onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
         unreadCount={unreadNotifications.length}
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
@@ -1945,6 +2381,32 @@ export default function App() {
         onReconcileBordereau={handleReconcileResopharmaBordereau}
         onImportBordereaux={handleImportResopharmaBordereaux}
       />
+
+      {/* Data Management & Pharmacy Profile Modal */}
+      <DataManagementModal
+        isOpen={isDataManagementModalOpen}
+        onClose={() => setIsDataManagementModalOpen(false)}
+        pharmacyProfile={pharmacyProfile}
+        onUpdatePharmacyProfile={handleUpdatePharmacyProfile}
+        isRealModeActive={isRealModeActive}
+        onToggleRealMode={handleToggleRealMode}
+        onResetToDemoData={handleResetToDemoData}
+        onClearAllDataToBlank={handleClearAllDataToBlank}
+        onRestoreFromJsonBackup={handleRestoreFromJsonBackup}
+        onImportBulkProducts={handleImportBulkProducts}
+        onImportBulkTransactions={handleImportBulkTransactions}
+        onImportBulkOrders={handleImportBulkOrders}
+        onImportBulkExpenses={handleImportBulkExpenses}
+        summary={summary}
+        products={products}
+        orders={orders}
+        expenses={expenses}
+        bankTransactions={bankTransactions}
+        lcrStatements={lcrStatements}
+        competitorPrices={competitorPrices}
+      />
+
+
 
     </div>
   );
