@@ -1,6 +1,8 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
+  Bot,
+  Award,
   Truck, 
   Package, 
   Landmark, 
@@ -14,7 +16,13 @@ import {
   Percent,
   Scale,
   ShieldAlert,
-  Users
+  Users,
+  Stethoscope,
+  FolderArchive,
+  Cpu,
+  Settings,
+  MessageSquare,
+  HeartHandshake
 } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -49,99 +57,141 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   const tabs = [
     {
       id: 'dashboard',
-      label: 'Tableau de Bord',
+      label: 'Tableau de bord',
       icon: LayoutDashboard,
       badge: null
     },
     {
+      id: 'smart_ordering',
+      label: 'Smart Ordering IA',
+      icon: Bot,
+      badge: 'IA Pro',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'quality_management',
+      label: 'Management Qualité',
+      icon: Award,
+      badge: 'BPDO',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'tresorerie',
+      label: 'Prévisions Trésorerie',
+      icon: Landmark,
+      badge: 'DSP2 Actif',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
+    },
+    {
       id: 'surveillance_marges',
-      label: 'Surveillance Marges Temps Réel',
+      label: 'Pilotage Intelligent',
       icon: ShieldAlert,
       badge: marginAlertsCount > 0 ? 'Alerte -5,7%' : 'MM3M OK',
       badgeColor: marginAlertsCount > 0 ? 'bg-rose-600 text-white animate-pulse shadow-xs font-black' : 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
     },
     {
-      id: 'connecteurs',
-      label: 'État des Connecteurs',
-      icon: Activity,
-      badge: connectorsDownCount > 0 ? `${connectorsDownCount} en panne` : 'API Live',
-      badgeColor: connectorsDownCount > 0 ? 'bg-rose-500 text-white animate-pulse' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-400/40'
+      id: 'ventes',
+      label: 'Ventes & TVA',
+      icon: TrendingUp,
+      badge: '2024-2026',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'rh',
+      label: 'Ressources Humaines',
+      icon: Users,
+      badge: '7 salariés',
+      badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/40 font-bold'
+    },
+    {
+      id: 'digital_services',
+      label: 'Services Digitaux',
+      icon: Stethoscope,
+      badge: 'BPM',
+      badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/40'
+    },
+    {
+      id: 'document_ged',
+      label: 'Échange de Documents',
+      icon: FolderArchive,
+      badge: 'PAF 10 ans',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'robotic_inventory',
+      label: 'Inventaire Robotisé',
+      icon: Cpu,
+      badge: 'Rowa',
+      badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/40'
+    },
+    {
+      id: 'lgo_settings',
+      label: 'Paramètres & LGO',
+      icon: Settings,
+      badge: 'Connecté',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'internal_messaging',
+      label: 'Messagerie Interne',
+      icon: MessageSquare,
+      badge: '7 actifs',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'patient_care',
+      label: 'Suivi Patient',
+      icon: HeartHandshake,
+      badge: 'DP Actif',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
     },
     {
       id: 'fournisseurs',
-      label: 'Achats & Fournisseurs',
+      label: 'Gestion des Achats',
       icon: Truck,
       badge: unpaidSupplierAlertCount > 0 ? `${unpaidSupplierAlertCount} retard` : null,
       badgeColor: 'bg-rose-500 text-white'
     },
     {
+      id: 'health_analytics',
+      label: 'Analyse de Santé',
+      icon: Activity,
+      badge: 'ROSP 2026',
+      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+    },
+    {
+      id: 'stocks',
+      label: 'Optimisation des Stocks',
+      icon: Package,
+      badge: criticalExpiriesCount > 0 ? `${criticalExpiriesCount} urgents` : null,
+      badgeColor: 'bg-amber-500 text-white'
+    },
+    {
       id: 'variations_prix',
-      label: 'Variations Prix d\'Achat',
+      label: 'Variations Prix',
       icon: TrendingUp,
       badge: priceHikesCount > 0 ? `${priceHikesCount} hausses` : null,
       badgeColor: 'bg-rose-500 text-white animate-pulse'
     },
     {
       id: 'remises_rfa',
-      label: 'Contrôle Remises & RFA',
+      label: 'Contrôle RFA',
       icon: Percent,
       badge: discountsAnomaliesCount > 0 ? `${discountsAnomaliesCount} écarts` : 'Audit OK',
       badgeColor: discountsAnomaliesCount > 0 ? 'bg-amber-500 text-white' : 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
     },
     {
       id: 'lcr',
-      label: 'Contrôle LCR & Traites',
+      label: 'Contrôle LCR',
       icon: Receipt,
-      badge: lcrDisputesCount > 0 ? `${lcrDisputesCount} litige LCR` : lcrToControlCount > 0 ? `${lcrToControlCount} à pointer` : null,
-      badgeColor: lcrDisputesCount > 0 ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'
-    },
-    {
-      id: 'bilan_annuel',
-      label: 'Bilan Annuel Expert-Comptable',
-      icon: Scale,
-      badge: 'Interfimo',
-      badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
-    },
-    {
-      id: 'stocks',
-      label: 'Stocks & Péremptions',
-      icon: Package,
-      badge: criticalExpiriesCount > 0 ? `${criticalExpiriesCount} urgents` : null,
-      badgeColor: 'bg-amber-500 text-white'
-    },
-    {
-      id: 'rh',
-      label: 'Gestion RH & Planning',
-      icon: Users,
-      badge: '7 salariés',
-      badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/40 font-bold'
-    },
-    {
-      id: 'tresorerie',
-      label: 'Trésorerie & Crédit Agricole',
-      icon: Landmark,
-      badge: 'DSP2 Actif',
-      badgeColor: 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
-    },
-    {
-      id: 'audit',
-      label: 'Audit & Contrôle Interne',
-      icon: ShieldCheck,
-      badge: 'PAF Conforme',
-      badgeColor: 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/40'
-    },
-    {
-      id: 'depenses',
-      label: 'Dépenses & Budget',
-      icon: Receipt,
-      badge: budgetAlertsCount > 0 ? `${budgetAlertsCount} alertes` : null,
+      badge: lcrDisputesCount > 0 ? `${lcrDisputesCount} litige` : null,
       badgeColor: 'bg-rose-500 text-white'
     },
     {
-      id: 'ventes',
-      label: 'Ventes & Saisonnalité (3 Ans)',
-      icon: TrendingUp,
-      badge: '2024-2026',
+      id: 'bilan_annuel',
+      label: 'Bilan Expert-Comptable',
+      icon: Scale,
+      badge: 'Interfimo',
       badgeColor: 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
     },
     {
@@ -150,12 +200,6 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       icon: Radar,
       badge: 'IA Radar',
       badgeColor: 'bg-indigo-100 text-indigo-700'
-    },
-    {
-      id: 'rapports',
-      label: 'Rapports & FEC',
-      icon: FileText,
-      badge: null
     }
   ];
 
@@ -165,12 +209,19 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         <div className="flex space-x-1 overflow-x-auto py-2.5 no-scrollbar">
           {tabs.map(tab => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            const isActive = activeTab === tab.id || 
+                             (tab.id === 'surveillance_marges' && activeTab === 'watchdog') ||
+                             (tab.id === 'tresorerie' && activeTab === 'treasury_reconciliation') ||
+                             (tab.id === 'ventes' && activeTab === 'annual_sales') ||
+                             (tab.id === 'rh' && activeTab === 'hr_management') ||
+                             (tab.id === 'fournisseurs' && activeTab === 'suppliers_orders') ||
+                             (tab.id === 'stocks' && activeTab === 'stock_stats');
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'

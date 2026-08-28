@@ -22,7 +22,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   ShieldAlert,
-  Zap
+  Zap,
+  FileSpreadsheet
 } from 'lucide-react';
 import { ProductStock, BulkThresholdAdjustmentItem } from '../types/pharmacy';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
@@ -30,6 +31,7 @@ import { StockStatisticsDashboard } from './StockStatisticsDashboard';
 import { AdvancedStockSearchView } from './AdvancedStockSearchView';
 import { StockPredictiveAlertsView } from './StockPredictiveAlertsView';
 import { StockThresholdSimulatorView } from './StockThresholdSimulatorView';
+import { StockInventoryExportModal } from './StockInventoryExportModal';
 import { computeStockoutPredictions } from '../utils/stockPredictiveEngine';
 import { simulateStockThresholds, SCENARIO_PRESETS } from '../utils/stockOptimizationSimulatorEngine';
 
@@ -81,6 +83,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   // New product modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportCsvOpen, setIsImportCsvOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [csvContent, setCsvContent] = useState('');
 
   // Form fields for new product
@@ -239,8 +242,9 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
     }
   };
 
-  const handleExportCsv = () => {
-    const data = filteredProducts.map(p => ({
+  const handleQuickExportFullInventory = () => {
+    const data = products.map((p, idx) => ({
+      'N° Ligne': idx + 1,
       'Code CIP': p.cip,
       'Désignation': p.name,
       'DCI / Molécule': p.dci || '-',
@@ -248,16 +252,27 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
       'Catégorie': p.category,
       'Quantité en Stock': p.stockQty,
       'Seuil Mini': p.minThreshold,
-      'PUMP HT': p.pump,
-      'Prix Public TTC': p.publicPriceTtc,
-      'TVA %': p.tva,
+      'Seuil Maxi': p.maxThreshold || (p.minThreshold * 3),
+      'PUMP HT (€)': p.pump,
+      'Valeur Stock HT (€)': Number((p.stockQty * p.pump).toFixed(2)),
+      'Prix Public TTC (€)': p.publicPriceTtc,
+      'Potentiel Vente TTC (€)': Number((p.stockQty * p.publicPriceTtc).toFixed(2)),
+      'Taux TVA %': p.tva,
       'N° Lot': p.lotNumber,
       'Date Péremption': p.expiryDate,
       'Jours Restants': p.daysUntilExpiry,
       'Emplacement': p.location,
-      'Frigo 2-8°C': p.isRefrigerated ? 'Oui' : 'Non'
+      'Frigo (2-8°C)': p.isRefrigerated ? 'OUI' : 'NON',
+      'Statut MITM': (p.isEssential || (p as any).isMitm) ? 'OUI' : 'NON'
     }));
-    exportToCsv(data, 'stocks_et_peremptions_pharmacie');
+    const today = new Date().toISOString().split('T')[0];
+    exportToCsv(data, `inventaire_complet_stocks_officine_${today}`);
+    setActionSuccessMsg(`Export réussi : ${data.length} références d'inventaire téléchargées au format CSV/Excel.`);
+    setTimeout(() => setActionSuccessMsg(null), 5000);
+  };
+
+  const handleExportCsv = () => {
+    setIsExportModalOpen(true);
   };
 
   return (
@@ -285,7 +300,7 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Nouveau Produit / Lot</span>
+            <span>Nouveau Produit</span>
           </button>
 
           <button
@@ -304,13 +319,23 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
             <span>Scanner</span>
           </button>
 
-          <button
-            onClick={handleExportCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-            <span>Export CSV</span>
-          </button>
+          <div className="flex items-center rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 shadow-xs overflow-hidden">
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold transition cursor-pointer border-r border-slate-200 dark:border-slate-700"
+              title="Assistant d'exportation de l'inventaire (CSV / Excel, Bilan fiscal, Lots courts)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Exporter Inventaire</span>
+            </button>
+            <button
+              onClick={handleQuickExportFullInventory}
+              className="px-2.5 py-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition cursor-pointer"
+              title="Télécharger immédiatement l'inventaire complet exhaustif (CSV/Excel)"
+            >
+              Complet ({products.length})
+            </button>
+          </div>
         </div>
       </div>
 
@@ -590,6 +615,16 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
                 <option value="low_stock">📉 Stock Faible / Rupture</option>
                 <option value="refrigerated">❄️ Chaîne du froid (Frigo 2-8°C)</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(true)}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-bold transition cursor-pointer"
+                title="Exporter la liste actuelle ou tout l'inventaire en CSV/Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                <span>Export ({filteredProducts.length})</span>
+              </button>
             </div>
           </div>
 
@@ -798,7 +833,17 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
         </div>
       )}
 
-      {/* MODAL: ADD PRODUCT */}
+      {/* MODAL: EXPORT INVENTORY */}
+      <StockInventoryExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        products={products}
+        filteredProducts={filteredProducts}
+        onExportSuccess={(exportedCount, filename) => {
+          setActionSuccessMsg(`Export réussi : ${exportedCount} références d'inventaire enregistrées dans « ${filename} » avec encodage Excel / UTF-8 BOM.`);
+          setTimeout(() => setActionSuccessMsg(null), 5000);
+        }}
+      />
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in">

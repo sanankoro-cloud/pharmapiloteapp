@@ -140,6 +140,16 @@ import { RealtimeMarginWatchdogView } from './components/RealtimeMarginWatchdogV
 import { CompetitorPriceRadarView } from './components/CompetitorPriceRadarView';
 import { AccountingReportsView } from './components/AccountingReportsView';
 import { HumanResourcesManagementView } from './components/HumanResourcesManagementView';
+import { SidebarDesktop } from './components/SidebarDesktop';
+import { SmartOrderingAiView } from './components/SmartOrderingAiView';
+import { QualityManagementView } from './components/QualityManagementView';
+import { DigitalServicesView } from './components/DigitalServicesView';
+import { DocumentExchangeGedView } from './components/DocumentExchangeGedView';
+import { RoboticInventoryView } from './components/RoboticInventoryView';
+import { LgoSettingsView } from './components/LgoSettingsView';
+import { InternalMessagingView } from './components/InternalMessagingView';
+import { PatientCareTrackingView } from './components/PatientCareTrackingView';
+import { HealthAnalyticsView } from './components/HealthAnalyticsView';
 import { PushNotificationModal } from './components/PushNotificationModal';
 import { MobileMoreMenuModal } from './components/MobileMoreMenuModal';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
@@ -151,6 +161,23 @@ import { OnboardingTourModal } from './components/OnboardingTourModal';
 export default function App() {
   // App state
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pharmacy_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('pharmacy_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Real Mode / Demo Mode State & Pharmacy Profile State
   const [isRealModeActive, setIsRealModeActive] = useState<boolean>(() => {
@@ -2395,266 +2422,322 @@ export default function App() {
   const marginAlertsCount = categoryMargins.filter(c => c.isAlertTriggered).length;
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
       
-      {/* Toast Banner */}
-      {toastMessage && (
-        <div className="fixed top-20 right-4 z-50 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2 animate-fade-in max-w-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Top Navbar */}
-      <Navbar
+      {/* Lateral Navigation (Desktop Sidebar PharmaPilot Precision) */}
+      <SidebarDesktop
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        bankBalance={summary.currentBankBalance}
-        unreadNotifications={unreadNotifications}
-        onOpenNotifications={() => setIsNotificationModalOpen(true)}
-        onOpenAccountingModal={() => setActiveTab('rapports')}
-        onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
-        onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
-        onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
-        onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
-        onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
-        pharmacyProfile={pharmacyProfile}
-        isRealModeActive={isRealModeActive}
-        onSyncBank={handleSyncBank}
-        isSyncingBank={isSyncingBank}
-        lastBankSyncTime={lastBankSyncTime}
-        auditLogsCount={auditLogs.length}
-        connectorsDownCount={connectorsDownCount}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
+        onSelectTab={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
+        pharmacyName={pharmacyProfile?.name}
       />
 
+      {/* Content Column with Top Header and Active Module */}
+      <div className="flex-1 flex flex-col min-w-0">
 
-      {/* Desktop Navigation Tabs */}
-      <NavigationTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        criticalExpiriesCount={criticalExpiries.length}
-        unpaidSupplierAlertCount={overdueOrders.length}
-        budgetAlertsCount={budgetAlerts.length}
-        lcrDisputesCount={lcrDisputesCount}
-        lcrToControlCount={lcrToControlCount}
-        auditLogsCount={auditLogs.length}
-        connectorsDownCount={connectorsDownCount}
-        priceHikesCount={priceHikesCount}
-        discountsAnomaliesCount={discountsAnomaliesCount}
-        marginAlertsCount={marginAlertsCount}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 sm:pb-12">
-        {activeTab === 'dashboard' && (
-          <DashboardOverview
-            summary={summary}
-            todayStats={todayStats}
-            notifications={notifications}
-            nearExpiryProducts={criticalExpiries}
-            overdueOrders={overdueOrders}
-            products={products}
-            lcrStatements={lcrStatements}
-            resopharmaBordereaux={resopharmaBordereaux}
-            expenses={expenses}
-            orders={orders}
-            categoryMargins={categoryMargins}
-            priceVariations={priceVariations}
-            discountContracts={discountContracts}
-            monthlyReports={monthlyReports}
-            isRealModeActive={isRealModeActive}
-            onNavigateTab={setActiveTab}
-            onSyncBank={handleSyncBank}
-            isSyncingBank={isSyncingBank}
-            onOpenAccountingModal={() => setActiveTab('rapports')}
-            onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
-            onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
-            onOpenElectronicInvoicing={() => setIsElectronicInvoicingModalOpen(true)}
-            onOpenResopharma={() => setIsResopharmaModalOpen(true)}
-            onResetToDemo={handleResetToDemoData}
-          />
+        {/* Toast Banner */}
+        {toastMessage && (
+          <div className="fixed top-20 right-4 z-50 bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 text-xs font-semibold flex items-center gap-2 animate-fade-in max-w-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
         )}
 
-        {activeTab === 'surveillance_marges' && (
-          <RealtimeMarginWatchdogView
-            categories={categoryMargins}
-            onUpdateCategories={setCategoryMargins}
-            therapeuticClasses={therapeuticClasses}
-            productMargins={productMargins}
-            isRealModeActive={isRealModeActive}
-            onNavigateTab={setActiveTab}
-            onTriggerPushNotification={handleTriggerPushNotification}
-            onResetToDemo={handleResetToDemoData}
-            onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
-          />
-        )}
+        {/* Top Navbar */}
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          bankBalance={summary.currentBankBalance}
+          unreadNotifications={unreadNotifications}
+          onOpenNotifications={() => setIsNotificationModalOpen(true)}
+          onOpenAccountingModal={() => setActiveTab('rapports')}
+          onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
+          onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
+          onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
+          onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
+          onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
+          pharmacyProfile={pharmacyProfile}
+          isRealModeActive={isRealModeActive}
+          onSyncBank={handleSyncBank}
+          isSyncingBank={isSyncingBank}
+          lastBankSyncTime={lastBankSyncTime}
+          auditLogsCount={auditLogs.length}
+          connectorsDownCount={connectorsDownCount}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+        />
 
-        {activeTab === 'connecteurs' && (
-          <ConnectorsStatusView
-            connectors={connectorsHealth}
-            healthLogs={connectorHealthLogs}
-            onTestConnector={handleTestConnector}
-            onTestAllConnectors={handleTestAllConnectors}
-            onSimulateOutage={handleSimulateOutage}
-            onRestoreConnector={handleRestoreConnector}
-            isPingingAll={isPingingAllConnectors}
-            onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
-            onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
-            onNavigateToBank={() => setActiveTab('tresorerie')}
-          />
-        )}
+        {/* Desktop Quick Horizontal Navigation Tabs */}
+        <NavigationTabs
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          criticalExpiriesCount={criticalExpiries.length}
+          unpaidSupplierAlertCount={overdueOrders.length}
+          budgetAlertsCount={budgetAlerts.length}
+          lcrDisputesCount={lcrDisputesCount}
+          lcrToControlCount={lcrToControlCount}
+          auditLogsCount={auditLogs.length}
+          connectorsDownCount={connectorsDownCount}
+          priceHikesCount={priceHikesCount}
+          discountsAnomaliesCount={discountsAnomaliesCount}
+          marginAlertsCount={marginAlertsCount}
+        />
 
-        {activeTab === 'fournisseurs' && (
-          <SuppliersOrdersView
-            orders={orders}
-            onPayOrder={handlePayOrder}
-            onCreateOrder={handleCreateOrder}
-            onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
-            onSyncVault={() => handleSyncVault('cegedim_sy')}
-            onNavigateToLcr={() => setActiveTab('lcr')}
-            electronicInvoicesCount={electronicInvoices.length}
-            isSyncingVault={isSyncingVault}
-            lcrDisputesCount={lcrDisputesCount}
-          />
-        )}
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 sm:pb-12">
+          {activeTab === 'dashboard' && (
+            <DashboardOverview
+              summary={summary}
+              todayStats={todayStats}
+              notifications={notifications}
+              nearExpiryProducts={criticalExpiries}
+              overdueOrders={overdueOrders}
+              products={products}
+              lcrStatements={lcrStatements}
+              resopharmaBordereaux={resopharmaBordereaux}
+              expenses={expenses}
+              orders={orders}
+              categoryMargins={categoryMargins}
+              priceVariations={priceVariations}
+              discountContracts={discountContracts}
+              monthlyReports={monthlyReports}
+              isRealModeActive={isRealModeActive}
+              onNavigateTab={setActiveTab}
+              onSyncBank={handleSyncBank}
+              isSyncingBank={isSyncingBank}
+              onOpenAccountingModal={() => setActiveTab('rapports')}
+              onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
+              onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
+              onOpenElectronicInvoicing={() => setIsElectronicInvoicingModalOpen(true)}
+              onOpenResopharma={() => setIsResopharmaModalOpen(true)}
+              onResetToDemo={handleResetToDemoData}
+            />
+          )}
 
-        {activeTab === 'variations_prix' && (
-          <PurchasePriceVariationView
-            variations={priceVariations}
-            onUpdateVariationStatus={handleUpdateVariationStatus}
-            onContestVariation={handleContestVariation}
-            onApplyBatchSimulatedPrices={handleApplyBatchSimulatedPrices}
-          />
-        )}
+          {activeTab === 'smart_ordering' && (
+            <SmartOrderingAiView
+              onNavigateTab={setActiveTab}
+              onSendToLgo={(count, total) => {
+                setToastMessage(`Panier IA (${count} produits, ${total.toFixed(2)} €) synchronisé avec WinPharma.`);
+                setTimeout(() => setToastMessage(null), 4000);
+              }}
+            />
+          )}
 
-        {activeTab === 'remises_rfa' && (
-          <CommercialDiscountsControlView
-            contracts={discountContracts}
-            onClaimDiscrepancy={handleClaimDiscountDiscrepancy}
-            onReceiveCreditNote={handleReceiveCreditNote}
-          />
-        )}
+          {activeTab === 'quality_management' && (
+            <QualityManagementView />
+          )}
 
-        {activeTab === 'lcr' && (
-          <LcrControlView
-            statements={lcrStatements}
-            electronicInvoices={electronicInvoices}
-            orders={orders}
-            onValidateBap={handleValidateBap}
-            onDeclareDispute={handleDeclareDispute}
-            onSimulateLcrDebit={handleSimulateLcrDebit}
-            onToggleInvoiceVerification={handleToggleInvoiceVerification}
-            onImportNewStatement={handleImportStatement}
-            onBatchVerifyInvoices={handleBatchVerifyInvoices}
-            currentBankBalance={summary.currentBankBalance}
-            onOpenElectronicInvoicingVault={() => setIsElectronicInvoicingModalOpen(true)}
-          />
-        )}
+          {activeTab === 'digital_services' && (
+            <DigitalServicesView />
+          )}
 
-        {activeTab === 'bilan_annuel' && (
-          <AnnualCpaBalanceView
-            reports={annualCpaReports}
-            pharmacyProfile={pharmacyProfile}
-            onNavigateTab={setActiveTab}
-          />
-        )}
+          {activeTab === 'document_ged' && (
+            <DocumentExchangeGedView />
+          )}
 
-        {activeTab === 'stocks' && (
-          <StockExpiryView
-            products={products}
-            onDestockProduct={handleDestockProduct}
-            onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
-            onAddNewProduct={handleAddNewProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onAdjustStockQty={handleAdjustStockQty}
-            onImportBulkProducts={handleImportBulkProducts}
-            onCreateSupplierOrder={handleCreatePredictiveSupplierOrder}
-            onAdjustStockThresholds={handleAdjustStockThresholds}
-            onBulkAdjustStockThresholds={handleBulkAdjustStockThresholds}
-          />
-        )}
+          {activeTab === 'robotic_inventory' && (
+            <RoboticInventoryView />
+          )}
 
-        {activeTab === 'rh' && (
-          <HumanResourcesManagementView
-            employees={employees}
-            shifts={shifts}
-            leaveRequests={leaveRequests}
-            overtimeLogs={overtimeLogs}
-            trainingPlans={trainingPlans}
-            onUpdateEmployees={setEmployees}
-            onUpdateShifts={setShifts}
-            onUpdateLeaveRequests={setLeaveRequests}
-            onUpdateOvertimeLogs={setOvertimeLogs}
-            onUpdateTrainingPlans={setTrainingPlans}
-            onNavigateTab={setActiveTab}
-            onResetToDemo={handleResetToDemoData}
-          />
-        )}
+          {activeTab === 'lgo_settings' && (
+            <LgoSettingsView
+              pharmacyProfile={pharmacyProfile}
+              onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
+            />
+          )}
 
+          {activeTab === 'internal_messaging' && (
+            <InternalMessagingView />
+          )}
 
-        {activeTab === 'tresorerie' && (
-          <TreasuryBankReconciliationView
-            summary={summary}
-            transactions={bankTransactions}
-            onReconcileTransaction={handleReconcileTransaction}
-            onSyncBank={handleSyncBank}
-            isSyncingBank={isSyncingBank}
-            lastBankSyncTime={lastBankSyncTime}
-            onNavigateToLcr={() => setActiveTab('lcr')}
-            pendingLcrAmount={pendingLcrAmount}
-            lcrDisputesCount={lcrDisputesCount}
-            onAddNewTransaction={handleAddNewTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onImportBulkTransactions={handleImportBulkTransactions}
-            onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
-            resopharmaBordereauxCount={resopharmaBordereaux.length}
-            resopharmaPendingAmount={resopharmaBordereaux.filter(b => b.status === 'en_attente_virement').reduce((acc, b) => acc + b.amountTeletrans, 0)}
-            resopharmaRejectionsCount={resopharmaBordereaux.filter(b => b.status === 'ecart_detecte' || b.status === 'rejet_a_traiter').length}
-          />
-        )}
+          {activeTab === 'patient_care' && (
+            <PatientCareTrackingView />
+          )}
 
-        {activeTab === 'audit' && (
-          <AuditTrailView
-            logs={auditLogs}
-            currentOperator={currentOperator}
-            availableOperators={availableOperators}
-            onChangeCurrentOperator={setCurrentOperator}
-            onValidateLogEntry={handleValidateLogEntry}
-            onAddManualAuditEntry={handleAddManualAuditEntry}
-          />
-        )}
+          {activeTab === 'health_analytics' && (
+            <HealthAnalyticsView />
+          )}
 
-        {activeTab === 'depenses' && (
-          <RecurringExpensesView
-            expenses={expenses}
-            onUpdateExpense={handleUpdateExpense}
-            onCreateExpense={handleCreateExpense}
-          />
-        )}
+          {(activeTab === 'surveillance_marges' || activeTab === 'watchdog') && (
+            <RealtimeMarginWatchdogView
+              categories={categoryMargins}
+              onUpdateCategories={setCategoryMargins}
+              therapeuticClasses={therapeuticClasses}
+              productMargins={productMargins}
+              isRealModeActive={isRealModeActive}
+              onNavigateTab={setActiveTab}
+              onTriggerPushNotification={handleTriggerPushNotification}
+              onResetToDemo={handleResetToDemoData}
+              onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
+            />
+          )}
 
-        {activeTab === 'ventes' && (
-          <AnnualTrendsSalesView />
-        )}
+          {activeTab === 'connecteurs' && (
+            <ConnectorsStatusView
+              connectors={connectorsHealth}
+              healthLogs={connectorHealthLogs}
+              onTestConnector={handleTestConnector}
+              onTestAllConnectors={handleTestAllConnectors}
+              onSimulateOutage={handleSimulateOutage}
+              onRestoreConnector={handleRestoreConnector}
+              isPingingAll={isPingingAllConnectors}
+              onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
+              onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
+              onNavigateToBank={() => setActiveTab('tresorerie')}
+            />
+          )}
 
-        {activeTab === 'prix' && (
-          <CompetitorPriceRadarView
-            competitors={MOCK_COMPETITORS}
-            priceComparisons={competitorPrices}
-            onApplySuggestedPrice={handleApplySuggestedPrice}
-          />
-        )}
+          {(activeTab === 'fournisseurs' || activeTab === 'suppliers_orders') && (
+            <SuppliersOrdersView
+              orders={orders}
+              onPayOrder={handlePayOrder}
+              onCreateOrder={handleCreateOrder}
+              onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
+              onSyncVault={() => handleSyncVault('cegedim_sy')}
+              onNavigateToLcr={() => setActiveTab('lcr')}
+              electronicInvoicesCount={electronicInvoices.length}
+              isSyncingVault={isSyncingVault}
+              lcrDisputesCount={lcrDisputesCount}
+            />
+          )}
 
-        {activeTab === 'rapports' && (
-          <AccountingReportsView
-            reports={monthlyReports}
-            pharmacyProfile={pharmacyProfile}
-            isRealModeActive={isRealModeActive}
-            onNavigateTab={setActiveTab}
-          />
-        )}
-      </main>
+          {activeTab === 'variations_prix' && (
+            <PurchasePriceVariationView
+              variations={priceVariations}
+              onUpdateVariationStatus={handleUpdateVariationStatus}
+              onContestVariation={handleContestVariation}
+              onApplyBatchSimulatedPrices={handleApplyBatchSimulatedPrices}
+            />
+          )}
+
+          {activeTab === 'remises_rfa' && (
+            <CommercialDiscountsControlView
+              contracts={discountContracts}
+              onClaimDiscrepancy={handleClaimDiscountDiscrepancy}
+              onReceiveCreditNote={handleReceiveCreditNote}
+            />
+          )}
+
+          {activeTab === 'lcr' && (
+            <LcrControlView
+              statements={lcrStatements}
+              electronicInvoices={electronicInvoices}
+              orders={orders}
+              onValidateBap={handleValidateBap}
+              onDeclareDispute={handleDeclareDispute}
+              onSimulateLcrDebit={handleSimulateLcrDebit}
+              onToggleInvoiceVerification={handleToggleInvoiceVerification}
+              onImportNewStatement={handleImportStatement}
+              onBatchVerifyInvoices={handleBatchVerifyInvoices}
+              currentBankBalance={summary.currentBankBalance}
+              onOpenElectronicInvoicingVault={() => setIsElectronicInvoicingModalOpen(true)}
+            />
+          )}
+
+          {activeTab === 'bilan_annuel' && (
+            <AnnualCpaBalanceView
+              reports={annualCpaReports}
+              pharmacyProfile={pharmacyProfile}
+              onNavigateTab={setActiveTab}
+            />
+          )}
+
+          {(activeTab === 'stocks' || activeTab === 'stock_stats') && (
+            <StockExpiryView
+              products={products}
+              onDestockProduct={handleDestockProduct}
+              onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
+              onAddNewProduct={handleAddNewProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onAdjustStockQty={handleAdjustStockQty}
+              onImportBulkProducts={handleImportBulkProducts}
+              onCreateSupplierOrder={handleCreatePredictiveSupplierOrder}
+              onAdjustStockThresholds={handleAdjustStockThresholds}
+              onBulkAdjustStockThresholds={handleBulkAdjustStockThresholds}
+            />
+          )}
+
+          {(activeTab === 'rh' || activeTab === 'hr_management') && (
+            <HumanResourcesManagementView
+              employees={employees}
+              shifts={shifts}
+              leaveRequests={leaveRequests}
+              overtimeLogs={overtimeLogs}
+              trainingPlans={trainingPlans}
+              onUpdateEmployees={setEmployees}
+              onUpdateShifts={setShifts}
+              onUpdateLeaveRequests={setLeaveRequests}
+              onUpdateOvertimeLogs={setOvertimeLogs}
+              onUpdateTrainingPlans={setTrainingPlans}
+              onNavigateTab={setActiveTab}
+              onResetToDemo={handleResetToDemoData}
+            />
+          )}
+
+          {(activeTab === 'tresorerie' || activeTab === 'treasury_reconciliation') && (
+            <TreasuryBankReconciliationView
+              summary={summary}
+              transactions={bankTransactions}
+              onReconcileTransaction={handleReconcileTransaction}
+              onSyncBank={handleSyncBank}
+              isSyncingBank={isSyncingBank}
+              lastBankSyncTime={lastBankSyncTime}
+              onNavigateToLcr={() => setActiveTab('lcr')}
+              pendingLcrAmount={pendingLcrAmount}
+              lcrDisputesCount={lcrDisputesCount}
+              onAddNewTransaction={handleAddNewTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
+              onImportBulkTransactions={handleImportBulkTransactions}
+              onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
+              resopharmaBordereauxCount={resopharmaBordereaux.length}
+              resopharmaPendingAmount={resopharmaBordereaux.filter(b => b.status === 'en_attente_virement').reduce((acc, b) => acc + b.amountTeletrans, 0)}
+              resopharmaRejectionsCount={resopharmaBordereaux.filter(b => b.status === 'ecart_detecte' || b.status === 'rejet_a_traiter').length}
+            />
+          )}
+
+          {activeTab === 'audit' && (
+            <AuditTrailView
+              logs={auditLogs}
+              currentOperator={currentOperator}
+              availableOperators={availableOperators}
+              onChangeCurrentOperator={setCurrentOperator}
+              onValidateLogEntry={handleValidateLogEntry}
+              onAddManualAuditEntry={handleAddManualAuditEntry}
+            />
+          )}
+
+          {activeTab === 'depenses' && (
+            <RecurringExpensesView
+              expenses={expenses}
+              onUpdateExpense={handleUpdateExpense}
+              onCreateExpense={handleCreateExpense}
+            />
+          )}
+
+          {(activeTab === 'ventes' || activeTab === 'annual_sales') && (
+            <AnnualTrendsSalesView />
+          )}
+
+          {activeTab === 'prix' && (
+            <CompetitorPriceRadarView
+              competitors={MOCK_COMPETITORS}
+              priceComparisons={competitorPrices}
+              onApplySuggestedPrice={handleApplySuggestedPrice}
+            />
+          )}
+
+          {activeTab === 'rapports' && (
+            <AccountingReportsView
+              reports={monthlyReports}
+              pharmacyProfile={pharmacyProfile}
+              isRealModeActive={isRealModeActive}
+              onNavigateTab={setActiveTab}
+            />
+          )}
+        </main>
+      </div>
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileNav

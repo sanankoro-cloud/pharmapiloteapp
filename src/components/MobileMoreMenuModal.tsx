@@ -22,9 +22,18 @@ import {
   ShieldAlert,
   Database,
   Compass,
-  Users
+  Users,
+  Bot,
+  Award,
+  Stethoscope,
+  FolderArchive,
+  Cpu,
+  Settings,
+  MessageSquare,
+  HeartHandshake,
+  Package,
+  Truck
 } from 'lucide-react';
-
 
 interface MobileMoreMenuModalProps {
   isOpen: boolean;
@@ -59,83 +68,104 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const menuItems = [
+  const precisionScreens = [
+    {
+      id: 'smart_ordering',
+      label: '2. Smart Ordering IA',
+      sub: 'Commandes prédictives & ruptures MITM',
+      icon: Bot,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
+    {
+      id: 'quality_management',
+      label: '3. Management Qualité',
+      sub: 'Démarche qualité BPDO & non-conformités',
+      icon: Award,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
     {
       id: 'surveillance_marges',
-      label: 'Surveillance Marges Temps Réel',
-      sub: 'Alerte chute > 5% vs Moyenne Mobile 3M & simulation caisse',
+      label: '5. Pilotage Intelligent',
+      sub: 'Surveillance des marges & seuils de vigilance',
       icon: ShieldAlert,
       color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60'
     },
     {
-      id: 'variations_prix',
-      label: 'Variations du Prix d\'Achat (PUMP)',
-      sub: 'Alertes hausses laboratoires & impact marge',
+      id: 'ventes',
+      label: '6. Ventes & TVA',
+      sub: 'Ventilation des taux TVA & comparatif 3 ans',
       icon: TrendingUp,
-      color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60'
-    },
-    {
-      id: 'remises_rfa',
-      label: 'Contrôle des Remises & RFA',
-      sub: 'Audit sous-remises, avoirs & paliers volume',
-      icon: Percent,
-      color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60'
-    },
-    {
-      id: 'bilan_annuel',
-      label: 'Bilan Annuel Expert-Comptable',
-      icon: Scale,
-      sub: 'Actif/Passif, SIG, Ratios & Valorisation Interfimo',
-      color: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
-    },
-    {
-      id: 'connecteurs',
-      label: 'État des Connecteurs & Santé API',
-      sub: 'Surveillance Resopharma, CA, SY PDP, Chorus Pro',
-      icon: Activity,
       color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
     },
     {
-      id: 'lcr',
-      label: 'Contrôle LCR & Traites Fournisseurs',
-      sub: 'Pointage factures, avoirs déduits & BAP',
-      icon: Receipt,
-      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
-    },
-    {
       id: 'rh',
-      label: 'Gestion RH & Planning Équipe',
-      sub: 'Plannings, congés, conformité CSP, DPC & masse salariale',
+      label: '7. Ressources Humaines',
+      sub: 'Planning officine, congés & masse salariale',
       icon: Users,
       color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
     },
     {
-      id: 'depenses',
-      label: 'Dépenses Récurrentes & Budget',
-      sub: 'Loyer, salaires, WinPharma, leasing robot',
-      icon: Receipt,
-      color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60'
+      id: 'digital_services',
+      label: '8. Services Digitaux',
+      sub: 'Bilans de médication BPM, entretiens & vaccins',
+      icon: Stethoscope,
+      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
     },
     {
-      id: 'ventes',
-      label: 'Ventes & Saisonnalité (3 Ans)',
-      sub: 'Comparatif CA & Marge 2024-2026, indices et trimestres',
-      icon: TrendingUp,
-      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
-    },
-    {
-      id: 'audit',
-      label: 'Journal d\'Audit & Contrôle Interne',
-      sub: 'Traçabilité des mouvements de stocks et lettrages bancaires',
-      icon: ShieldCheck,
+      id: 'document_ged',
+      label: '9. Échange de Documents (GED)',
+      sub: 'Coffre-fort factures Factur-X & PAF 10 ans',
+      icon: FolderArchive,
       color: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
     },
     {
-      id: 'rapports',
-      label: 'Rapports Comptables & FEC',
-      sub: 'Export bilan mensuel et déclarations TVA',
-      icon: FileText,
+      id: 'robotic_inventory',
+      label: '10. Inventaire Robotisé',
+      sub: 'Supervision BD Rowa / automates & cadencier',
+      icon: Cpu,
+      color: 'text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60'
+    },
+    {
+      id: 'lgo_settings',
+      label: '11. Paramètres & LGO',
+      sub: 'Liaison WinPharma, LGPI & seuils d\'alertes',
+      icon: Settings,
+      color: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'
+    },
+    {
+      id: 'internal_messaging',
+      label: '12. Messagerie Interne',
+      sub: 'Consignes de comptoir & passation de relève',
+      icon: MessageSquare,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
+    {
+      id: 'patient_care',
+      label: '13. Suivi Patient',
+      sub: 'Dossier pharmaceutique, ALD & interactions',
+      icon: HeartHandshake,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
+    {
+      id: 'fournisseurs',
+      label: '14. Gestion des Achats',
+      sub: 'Commandes labos, grossistes & délais de paiement',
+      icon: Truck,
       color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
+    },
+    {
+      id: 'health_analytics',
+      label: '15. Analyse de Santé & ROSP',
+      sub: 'Indicateurs conventionnels & génériques',
+      icon: Activity,
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60'
+    },
+    {
+      id: 'stocks',
+      label: '16. Optimisation des Stocks',
+      sub: 'Rotation, DLUO & alertes surstocks',
+      icon: Package,
+      color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60'
     }
   ];
 
@@ -149,13 +179,13 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
               ✚
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Menu Général Officine</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Accès rapide aux modules financiers</p>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">PharmaPilot Precision • 16 Modules</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Navigation complète de l'officine</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -190,115 +220,36 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
           </div>
         )}
 
-        {/* Action List */}
-        <div className="space-y-2 mt-2">
-          
-          {/* Onboarding Tour / Guide button */}
-          {onOpenOnboardingTour && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenOnboardingTour();
-              }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-left transition shadow-xs cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-xs">
-                <Compass className="w-5 h-5 animate-pulse" />
-              </div>
-              <div className="flex-1">
-                <div className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                  <span>Guide Démarrage & Configuration Initiale</span>
-                  <span className="px-1.5 py-0.2 rounded bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 text-[9px] font-bold">GUIDE</span>
-                </div>
-                <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Tour pas-à-pas pour injecter vos données après réinitialisation</div>
-              </div>
-            </button>
-          )}
+        {/* Quick Tools */}
+        <div className="grid grid-cols-2 gap-2 my-3">
+          <button
+            onClick={() => {
+              onClose();
+              onOpenBarcodeScanner();
+            }}
+            className="flex items-center gap-2 p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/30 text-left transition text-xs font-bold text-emerald-900 dark:text-emerald-200 cursor-pointer"
+          >
+            <Scan className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Scanner Datamatrix</span>
+          </button>
 
-          {/* Data & Profile Management button */}
           {onOpenDataManagementModal && (
             <button
               onClick={() => {
                 onClose();
                 onOpenDataManagementModal();
               }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-left transition shadow-xs cursor-pointer"
+              className="flex items-center gap-2 p-2.5 rounded-xl border border-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/30 text-left transition text-xs font-bold text-indigo-900 dark:text-indigo-200 cursor-pointer"
             >
-              <div className="p-2.5 rounded-xl bg-indigo-600 text-white">
-                <Database className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
-                  <span>Mes Données & Profil Entreprise</span>
-                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 text-[9px] font-bold">CONFIG</span>
-                </div>
-                <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Personnaliser l'officine, importer CSV ou démarrer vierge</div>
-              </div>
+              <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>Gérer Données</span>
             </button>
           )}
+        </div>
 
-          <button
-            onClick={() => {
-              onClose();
-              onOpenBarcodeScanner();
-            }}
-            className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-left transition shadow-xs cursor-pointer"
-          >
-            <div className="p-2.5 rounded-xl bg-emerald-600 text-white">
-              <Scan className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <div className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                <span>Scanner Code-Barres / Caméra</span>
-                <span className="px-1.5 py-0.2 rounded bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 text-[9px] font-bold">LIVE</span>
-              </div>
-              <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Identification Datamatrix & entrées de stock instantanées</div>
-            </div>
-          </button>
-
-          {onOpenResopharmaModal && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenResopharmaModal();
-              }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-purple-200 dark:border-purple-800/60 bg-purple-50/80 dark:bg-purple-950/40 text-left transition shadow-xs cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-purple-600 text-white">
-                <Network className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="text-xs font-bold text-purple-950 dark:text-purple-200 flex items-center gap-1.5">
-                  <span>Connecteur Resopharma</span>
-                  <span className="px-1.5 py-0.2 rounded bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-100 text-[9px] font-bold">NOEMIE</span>
-                </div>
-                <div className="text-[10px] text-purple-700 dark:text-purple-400">Télétransmission TP, retours NOEMIE & bordereaux DRE</div>
-              </div>
-            </button>
-          )}
-
-          {onOpenElectronicInvoicingModal && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenElectronicInvoicingModal();
-              }}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/80 dark:bg-indigo-950/40 text-left transition shadow-xs cursor-pointer"
-            >
-              <div className="p-2.5 rounded-xl bg-indigo-600 text-white">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
-                  <span>Coffre-Fort Factures (SY by Cegedim)</span>
-                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-100 text-[9px] font-bold">Factur-X</span>
-                </div>
-                <div className="text-[10px] text-indigo-700 dark:text-indigo-400">Collecte automatique PDP & rapprochement DGFIP</div>
-              </div>
-            </button>
-          )}
-
-          {menuItems.map(item => {
+        {/* 16 Precision Screens List */}
+        <div className="space-y-2">
+          {precisionScreens.map(item => {
             const Icon = item.icon;
             return (
               <button
@@ -319,44 +270,9 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
               </button>
             );
           })}
-
-          <button
-            onClick={() => {
-              onClose();
-              onOpenNotifications();
-            }}
-            className="w-full flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60">
-                <Bell className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-slate-100">Notifications & Alertes</div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400">Retards paiements, budget et DLUO</div>
-              </div>
-            </div>
-            {unreadCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        <div className="mt-5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200">
-          <div className="font-bold flex items-center gap-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span>Mode Mobile & Distance Activé</span>
-          </div>
-          <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-            Synchronisation continue avec le LGO de la pharmacie et le compte Crédit Agricole.
-          </p>
         </div>
 
       </div>
     </div>
   );
 };
-
-
