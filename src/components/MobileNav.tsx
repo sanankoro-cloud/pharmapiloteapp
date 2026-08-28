@@ -53,7 +53,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         <button
           onClick={onOpenMoreMenu}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg relative ${
-            ['depenses', 'ventes', 'rapports'].includes(activeTab) 
+            ['depenses', 'ventes', 'rapports', 'rh', 'bilan_annuel', 'remises_rfa', 'variations_prix', 'lcr', 'audit', 'connecteurs'].includes(activeTab) 
               ? 'text-emerald-400 font-bold' 
               : 'text-slate-400 hover:text-slate-200'
           }`}

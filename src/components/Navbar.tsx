@@ -17,7 +17,8 @@ import {
   Activity,
   Database,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  Compass
 } from 'lucide-react';
 import { PushNotificationAlert, PharmacyProfile } from '../types/pharmacy';
 import { formatCurrency } from '../utils/formatters';
@@ -34,6 +35,7 @@ interface NavbarProps {
   onOpenElectronicInvoicingModal: () => void;
   onOpenResopharmaModal?: () => void;
   onOpenDataManagementModal?: () => void;
+  onOpenOnboardingTour?: () => void;
   pharmacyProfile?: PharmacyProfile;
   isRealModeActive?: boolean;
   onSyncBank: () => void;
@@ -56,6 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenElectronicInvoicingModal,
   onOpenResopharmaModal,
   onOpenDataManagementModal,
+  onOpenOnboardingTour,
   pharmacyProfile,
   isRealModeActive = false,
   onSyncBank,
@@ -113,6 +116,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Quick Bank & Actions Bar */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Onboarding Guide / Tour Button */}
+            {onOpenOnboardingTour && (
+              <button
+                onClick={onOpenOnboardingTour}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition shadow-xs cursor-pointer ${
+                  isRealModeActive
+                    ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/50'
+                    : 'bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border-emerald-500/40'
+                }`}
+                title="Guide de démarrage pas-à-pas & configuration des premières données"
+              >
+                <Compass className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span className="hidden md:inline">Guide Démarrage</span>
+                <span className="md:hidden">Guide</span>
+              </button>
+            )}
+
             {/* Quick Data Management Button (Settings & Import) */}
             {onOpenDataManagementModal && (
               <button

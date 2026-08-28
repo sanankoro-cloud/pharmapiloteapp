@@ -59,26 +59,59 @@ import {
   DEFAULT_WATCHDOG_CONFIG,
   DEFAULT_CUSTOM_MARGIN_RULES
 } from '../data/mockMarginWatchdog';
+import { 
+  TherapeuticClassSummary, 
+  ProductMarginDetail 
+} from '../types/productTherapeuticMargin';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { CustomMarginRulesManager } from './CustomMarginRulesManager';
 import { ProductMarginTherapeuticDashboard } from './ProductMarginTherapeuticDashboard';
 
 interface RealtimeMarginWatchdogViewProps {
+  categories?: CategoryMarginStatus[];
+  onUpdateCategories?: (cats: CategoryMarginStatus[]) => void;
+  therapeuticClasses?: TherapeuticClassSummary[];
+  productMargins?: ProductMarginDetail[];
+  isRealModeActive?: boolean;
   onNavigateTab?: (tab: string) => void;
   onTriggerPushNotification?: (title: string, message: string, severity: 'critique' | 'attention' | 'info') => void;
+  onResetToDemo?: () => void;
+  onOpenDataManagement?: () => void;
 }
 
 export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProps> = ({
+  categories: propCategories,
+  onUpdateCategories,
+  therapeuticClasses,
+  productMargins,
+  isRealModeActive = false,
   onNavigateTab,
-  onTriggerPushNotification
+  onTriggerPushNotification,
+  onResetToDemo,
+  onOpenDataManagement
 }) => {
   // Main view switcher: Watchdog Live vs Dashboard Marges par Produit & Classes Thérapeutiques
   const [activeViewMode, setActiveViewMode] = useState<'product_margins' | 'watchdog_live'>('product_margins');
 
   // State for margin status list
-  const [categories, setCategories] = useState<CategoryMarginStatus[]>(MOCK_CATEGORY_MARGINS);
+  const [internalCategories, setInternalCategories] = useState<CategoryMarginStatus[]>(() => {
+    return isRealModeActive ? [] : MOCK_CATEGORY_MARGINS;
+  });
+
+  const categories = propCategories !== undefined ? propCategories : internalCategories;
+  const setCategories = (updater: (prev: CategoryMarginStatus[]) => CategoryMarginStatus[]) => {
+    if (onUpdateCategories && propCategories) {
+      const next = updater(propCategories);
+      onUpdateCategories(next);
+    } else {
+      setInternalCategories(updater);
+    }
+  };
+
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('parapharmacie');
-  const [liveTickets, setLiveTickets] = useState<LiveSalesTicket[]>(MOCK_LIVE_TICKETS);
+  const [liveTickets, setLiveTickets] = useState<LiveSalesTicket[]>(() => {
+    return isRealModeActive ? [] : MOCK_LIVE_TICKETS;
+  });
   
   // Watchdog Settings
   const [config, setConfig] = useState<MarginWatchdogConfig>(DEFAULT_WATCHDOG_CONFIG);
@@ -473,7 +506,14 @@ export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProp
 
       {/* VIEW 1: DEDICATED PRODUCT MARGIN & THERAPEUTIC CLASS DASHBOARD */}
       {activeViewMode === 'product_margins' && (
-        <ProductMarginTherapeuticDashboard onNavigateTab={onNavigateTab} />
+        <ProductMarginTherapeuticDashboard 
+          therapeuticClasses={therapeuticClasses}
+          productMargins={productMargins}
+          isRealModeActive={isRealModeActive}
+          onNavigateTab={onNavigateTab}
+          onResetToDemo={onResetToDemo}
+          onOpenDataManagement={onOpenDataManagement}
+        />
       )}
 
       {/* VIEW 2: REAL-TIME WATCHDOG & LIVE MM3M ANOMALY FEED */}
@@ -1093,40 +1133,52 @@ export const RealtimeMarginWatchdogView: React.FC<RealtimeMarginWatchdogViewProp
               </div>
 
               <div className="space-y-2 max-h-[380px] overflow-y-auto no-scrollbar pr-1">
-                {liveTickets.map((ticket) => (
-                  <div
-                    key={ticket.id}
-                    className={`p-3 rounded-xl border text-xs transition ${
-                      ticket.isDiscountAnomalous
-                        ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-950 dark:text-rose-200'
-                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700 text-slate-800 dark:text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono font-bold text-[11px] text-slate-500">
-                        {ticket.ticketNumber} • {ticket.timestamp}
-                      </span>
-                      {ticket.isDiscountAnomalous ? (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500 text-white">
-                          Remise -{ticket.discountAppliedPct}%
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-mono font-bold text-emerald-600">
-                          Marge {ticket.marginRatePct.toFixed(1)}%
-                        </span>
-                      )}
+                {liveTickets.length === 0 ? (
+                  <div className="p-6 text-center bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <ShoppingBag className="w-6 h-6 text-slate-400 mx-auto mb-2 opacity-50" />
+                    <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Aucun ticket de caisse en mémoire
                     </div>
-
-                    <div className="font-semibold text-slate-900 dark:text-white truncate">
-                      {ticket.productName}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
-                      <span>Opérateur: {ticket.cashierName}</span>
-                      <span className="font-mono">{formatCurrency(ticket.publicPriceTtc)} TTC</span>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      Mode Réel / Base Vierge activé. Utilisez les boutons ci-dessus pour simuler une vente ou synchronisez votre LGO.
                     </div>
                   </div>
-                ))}
+                ) : (
+                  liveTickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className={`p-3 rounded-xl border text-xs transition ${
+                        ticket.isDiscountAnomalous
+                          ? 'bg-rose-50/60 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-950 dark:text-rose-200'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono font-bold text-[11px] text-slate-500">
+                          {ticket.ticketNumber} • {ticket.timestamp}
+                        </span>
+                        {ticket.isDiscountAnomalous ? (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500 text-white">
+                            Remise -{ticket.discountAppliedPct}%
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-mono font-bold text-emerald-600">
+                            Marge {ticket.marginRatePct.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="font-semibold text-slate-900 dark:text-white truncate">
+                        {ticket.productName}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                        <span>Opérateur: {ticket.cashierName}</span>
+                        <span className="font-mono">{formatCurrency(ticket.publicPriceTtc)} TTC</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

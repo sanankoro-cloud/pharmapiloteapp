@@ -11,6 +11,7 @@ import {
   MOCK_COMPETITORS, 
   MOCK_COMPETITOR_PRICES, 
   MOCK_DAILY_STATS, 
+  BLANK_DAILY_STAT,
   MOCK_MONTHLY_REPORTS, 
   MOCK_NOTIFICATIONS 
 } from './data/mockPharmacyData';
@@ -40,6 +41,16 @@ import {
 import {
   MOCK_ANNUAL_CPA_REPORTS
 } from './data/mockAccountingBalance';
+import {
+  MOCK_CATEGORY_MARGINS,
+  BLANK_CATEGORY_MARGINS
+} from './data/mockMarginWatchdog';
+import {
+  MOCK_THERAPEUTIC_CLASSES,
+  BLANK_THERAPEUTIC_CLASSES,
+  MOCK_PRODUCT_MARGIN_DETAILS,
+  BLANK_PRODUCT_MARGIN_DETAILS
+} from './data/mockProductTherapeuticMargin';
 import { 
   ProductStock, 
   SupplierOrder, 
@@ -49,8 +60,17 @@ import {
   PushNotificationAlert, 
   PharmacyFinancialSummary,
   PharmacyProfile,
-  MonthlyAccountingReport
+  MonthlyAccountingReport,
+  DailySaleStat,
+  BulkThresholdAdjustmentItem
 } from './types/pharmacy';
+import { 
+  CategoryMarginStatus 
+} from './types/marginWatchdog';
+import { 
+  TherapeuticClassSummary, 
+  ProductMarginDetail 
+} from './types/productTherapeuticMargin';
 import { 
   ElectronicInvoice, 
   VaultConnectorConfig, 
@@ -80,8 +100,28 @@ import {
 import {
   AnnualCpaReport
 } from './types/accountingBalance';
+import {
+  MOCK_EMPLOYEES,
+  BLANK_EMPLOYEES,
+  MOCK_WORK_SHIFTS,
+  BLANK_WORK_SHIFTS,
+  MOCK_LEAVE_REQUESTS,
+  BLANK_LEAVE_REQUESTS,
+  MOCK_OVERTIME_LOGS,
+  BLANK_OVERTIME_LOGS,
+  MOCK_TRAINING_PLANS,
+  BLANK_TRAINING_PLANS
+} from './data/mockHrData';
+import {
+  Employee,
+  WorkShift,
+  LeaveRequest,
+  OvertimeLog,
+  TrainingDpcPlan
+} from './types/hr';
 
 import { Navbar } from './components/Navbar';
+
 import { NavigationTabs } from './components/NavigationTabs';
 import { MobileNav } from './components/MobileNav';
 import { DashboardOverview } from './components/DashboardOverview';
@@ -99,12 +139,14 @@ import { AnnualTrendsSalesView } from './components/AnnualTrendsSalesView';
 import { RealtimeMarginWatchdogView } from './components/RealtimeMarginWatchdogView';
 import { CompetitorPriceRadarView } from './components/CompetitorPriceRadarView';
 import { AccountingReportsView } from './components/AccountingReportsView';
+import { HumanResourcesManagementView } from './components/HumanResourcesManagementView';
 import { PushNotificationModal } from './components/PushNotificationModal';
 import { MobileMoreMenuModal } from './components/MobileMoreMenuModal';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { ElectronicInvoicingVaultModal } from './components/ElectronicInvoicingVaultModal';
 import { ResopharmaConnectorModal } from './components/ResopharmaConnectorModal';
 import { DataManagementModal } from './components/DataManagementModal';
+import { OnboardingTourModal } from './components/OnboardingTourModal';
 
 export default function App() {
   // App state
@@ -289,8 +331,113 @@ export default function App() {
     }
   });
 
+  // Category Margins Surveillance State
+  const [categoryMargins, setCategoryMargins] = useState<CategoryMarginStatus[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_category_margins');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_CATEGORY_MARGINS : MOCK_CATEGORY_MARGINS;
+    } catch {
+      return MOCK_CATEGORY_MARGINS;
+    }
+  });
+
+  // Therapeutic Classes & Product Margins State
+  const [therapeuticClasses, setTherapeuticClasses] = useState<TherapeuticClassSummary[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_therapeutic_classes');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_THERAPEUTIC_CLASSES : MOCK_THERAPEUTIC_CLASSES;
+    } catch {
+      return MOCK_THERAPEUTIC_CLASSES;
+    }
+  });
+
+  const [productMargins, setProductMargins] = useState<ProductMarginDetail[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_product_margins');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_PRODUCT_MARGIN_DETAILS : MOCK_PRODUCT_MARGIN_DETAILS;
+    } catch {
+      return MOCK_PRODUCT_MARGIN_DETAILS;
+    }
+  });
+
+  // Today Sales Stats (Horaire & Ventes du jour)
+  const [todayStats, setTodayStats] = useState<DailySaleStat>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_today_stats');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_DAILY_STAT : MOCK_DAILY_STATS[0];
+    } catch {
+      return MOCK_DAILY_STATS[0];
+    }
+  });
+
+  // Human Resources (RH) Management State
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_hr_employees');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_EMPLOYEES : MOCK_EMPLOYEES;
+    } catch {
+      return MOCK_EMPLOYEES;
+    }
+  });
+
+  const [shifts, setShifts] = useState<WorkShift[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_hr_shifts');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_WORK_SHIFTS : MOCK_WORK_SHIFTS;
+    } catch {
+      return MOCK_WORK_SHIFTS;
+    }
+  });
+
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_hr_leave_requests');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_LEAVE_REQUESTS : MOCK_LEAVE_REQUESTS;
+    } catch {
+      return MOCK_LEAVE_REQUESTS;
+    }
+  });
+
+  const [overtimeLogs, setOvertimeLogs] = useState<OvertimeLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_hr_overtime_logs');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_OVERTIME_LOGS : MOCK_OVERTIME_LOGS;
+    } catch {
+      return MOCK_OVERTIME_LOGS;
+    }
+  });
+
+  const [trainingPlans, setTrainingPlans] = useState<TrainingDpcPlan[]>(() => {
+    try {
+      const saved = localStorage.getItem('pharmacy_hr_training_plans');
+      if (saved) return JSON.parse(saved);
+      const isReal = localStorage.getItem('pharmacy_is_real_mode') === 'true';
+      return isReal ? BLANK_TRAINING_PLANS : MOCK_TRAINING_PLANS;
+    } catch {
+      return MOCK_TRAINING_PLANS;
+    }
+  });
+
+
   // UI modals & indicators
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
   const [isSyncingBank, setIsSyncingBank] = useState(false);
@@ -461,6 +608,78 @@ export default function App() {
     }
   }, [auditLogs]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_category_margins', JSON.stringify(categoryMargins));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [categoryMargins]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_therapeutic_classes', JSON.stringify(therapeuticClasses));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [therapeuticClasses]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_product_margins', JSON.stringify(productMargins));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [productMargins]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_today_stats', JSON.stringify(todayStats));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [todayStats]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_hr_employees', JSON.stringify(employees));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [employees]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_hr_shifts', JSON.stringify(shifts));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [shifts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_hr_leave_requests', JSON.stringify(leaveRequests));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [leaveRequests]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_hr_overtime_logs', JSON.stringify(overtimeLogs));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [overtimeLogs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pharmacy_hr_training_plans', JSON.stringify(trainingPlans));
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [trainingPlans]);
+
   const handleToggleDarkMode = () => {
     setIsDarkMode(prev => {
       const next = !prev;
@@ -490,6 +709,15 @@ export default function App() {
     setElectronicInvoices(MOCK_ELECTRONIC_INVOICES);
     setResopharmaBordereaux(MOCK_RESOPHARMA_BORDEREAUX);
     setAuditLogs(MOCK_AUDIT_LOGS);
+    setCategoryMargins(MOCK_CATEGORY_MARGINS);
+    setTherapeuticClasses(MOCK_THERAPEUTIC_CLASSES);
+    setProductMargins(MOCK_PRODUCT_MARGIN_DETAILS);
+    setTodayStats(MOCK_DAILY_STATS[0]);
+    setEmployees(MOCK_EMPLOYEES);
+    setShifts(MOCK_WORK_SHIFTS);
+    setLeaveRequests(MOCK_LEAVE_REQUESTS);
+    setOvertimeLogs(MOCK_OVERTIME_LOGS);
+    setTrainingPlans(MOCK_TRAINING_PLANS);
     setSummary(INITIAL_SUMMARY);
     setPharmacyProfile(DEFAULT_PHARMACY_PROFILE);
     setIsRealModeActive(false);
@@ -509,11 +737,20 @@ export default function App() {
     localStorage.setItem('pharmacy_electronic_invoices', JSON.stringify(MOCK_ELECTRONIC_INVOICES));
     localStorage.setItem('pharmacy_resopharma_bordereaux', JSON.stringify(MOCK_RESOPHARMA_BORDEREAUX));
     localStorage.setItem('pharmacy_audit_logs', JSON.stringify(MOCK_AUDIT_LOGS));
+    localStorage.setItem('pharmacy_category_margins', JSON.stringify(MOCK_CATEGORY_MARGINS));
+    localStorage.setItem('pharmacy_therapeutic_classes', JSON.stringify(MOCK_THERAPEUTIC_CLASSES));
+    localStorage.setItem('pharmacy_product_margins', JSON.stringify(MOCK_PRODUCT_MARGIN_DETAILS));
+    localStorage.setItem('pharmacy_today_stats', JSON.stringify(MOCK_DAILY_STATS[0]));
+    localStorage.setItem('pharmacy_hr_employees', JSON.stringify(MOCK_EMPLOYEES));
+    localStorage.setItem('pharmacy_hr_shifts', JSON.stringify(MOCK_WORK_SHIFTS));
+    localStorage.setItem('pharmacy_hr_leave_requests', JSON.stringify(MOCK_LEAVE_REQUESTS));
+    localStorage.setItem('pharmacy_hr_overtime_logs', JSON.stringify(MOCK_OVERTIME_LOGS));
+    localStorage.setItem('pharmacy_hr_training_plans', JSON.stringify(MOCK_TRAINING_PLANS));
     localStorage.setItem('pharmacy_summary', JSON.stringify(INITIAL_SUMMARY));
     localStorage.setItem('pharmacy_profile_custom', JSON.stringify(DEFAULT_PHARMACY_PROFILE));
     localStorage.setItem('pharmacy_is_real_mode', 'false');
 
-    showToast("Jeu de données de démonstration réinitialisé avec succès.");
+    showToast("Jeu de données de démonstration réinitialisé avec succès (RH, finances, stocks, marges).");
   };
 
   const handleClearAllDataToBlank = () => {
@@ -531,6 +768,15 @@ export default function App() {
     setElectronicInvoices([]);
     setResopharmaBordereaux([]);
     setAuditLogs([]);
+    setCategoryMargins(BLANK_CATEGORY_MARGINS);
+    setTherapeuticClasses([]);
+    setProductMargins([]);
+    setTodayStats(BLANK_DAILY_STAT);
+    setEmployees(BLANK_EMPLOYEES);
+    setShifts(BLANK_WORK_SHIFTS);
+    setLeaveRequests(BLANK_LEAVE_REQUESTS);
+    setOvertimeLogs(BLANK_OVERTIME_LOGS);
+    setTrainingPlans(BLANK_TRAINING_PLANS);
     setSummary(BLANK_SUMMARY);
     setIsRealModeActive(true);
 
@@ -549,10 +795,22 @@ export default function App() {
     localStorage.setItem('pharmacy_electronic_invoices', JSON.stringify([]));
     localStorage.setItem('pharmacy_resopharma_bordereaux', JSON.stringify([]));
     localStorage.setItem('pharmacy_audit_logs', JSON.stringify([]));
+    localStorage.setItem('pharmacy_category_margins', JSON.stringify(BLANK_CATEGORY_MARGINS));
+    localStorage.setItem('pharmacy_therapeutic_classes', JSON.stringify([]));
+    localStorage.setItem('pharmacy_product_margins', JSON.stringify([]));
+    localStorage.setItem('pharmacy_today_stats', JSON.stringify(BLANK_DAILY_STAT));
+    localStorage.setItem('pharmacy_hr_employees', JSON.stringify(BLANK_EMPLOYEES));
+    localStorage.setItem('pharmacy_hr_shifts', JSON.stringify(BLANK_WORK_SHIFTS));
+    localStorage.setItem('pharmacy_hr_leave_requests', JSON.stringify(BLANK_LEAVE_REQUESTS));
+    localStorage.setItem('pharmacy_hr_overtime_logs', JSON.stringify(BLANK_OVERTIME_LOGS));
+    localStorage.setItem('pharmacy_hr_training_plans', JSON.stringify(BLANK_TRAINING_PLANS));
     localStorage.setItem('pharmacy_summary', JSON.stringify(BLANK_SUMMARY));
     localStorage.setItem('pharmacy_is_real_mode', 'true');
+    localStorage.removeItem('pharmacy_onboarding_completed_steps');
+    localStorage.removeItem('pharmacy_onboarding_dismissed');
+    localStorage.removeItem('pharmacy_onboarding_banner_hidden');
 
-    showToast("Application réinitialisée à 100% à blanc (Alertes, rapports comptables, écritures et stocks effacés).");
+    showToast("Application réinitialisée à 100% à blanc (RH & plannings, trésorerie, prévisionnel de flux, projections, marges, écritures et stocks effacés).");
   };
 
   const handleRestoreFromJsonBackup = (data: {
@@ -572,6 +830,15 @@ export default function App() {
     competitorPrices?: CompetitorPriceComparison[];
     electronicInvoices?: ElectronicInvoice[];
     resopharmaBordereaux?: ResopharmaBordereau[];
+    categoryMargins?: CategoryMarginStatus[];
+    therapeuticClasses?: TherapeuticClassSummary[];
+    productMargins?: ProductMarginDetail[];
+    todayStats?: DailySaleStat;
+    employees?: Employee[];
+    shifts?: WorkShift[];
+    leaveRequests?: LeaveRequest[];
+    overtimeLogs?: OvertimeLog[];
+    trainingPlans?: TrainingDpcPlan[];
     isRealMode?: boolean;
     isRealModeActive?: boolean;
   }) => {
@@ -582,6 +849,10 @@ export default function App() {
     if (data.orders) setOrders(data.orders);
     if (data.expenses) setExpenses(data.expenses);
     if (data.bankTransactions) setBankTransactions(data.bankTransactions);
+    if (data.categoryMargins) setCategoryMargins(data.categoryMargins);
+    if (data.therapeuticClasses) setTherapeuticClasses(data.therapeuticClasses);
+    if (data.productMargins) setProductMargins(data.productMargins);
+    if (data.todayStats) setTodayStats(data.todayStats);
     if (data.lcrStatements) setLcrStatements(data.lcrStatements);
     if (data.notifications) setNotifications(data.notifications);
     if (data.monthlyReports) setMonthlyReports(data.monthlyReports);
@@ -591,11 +862,17 @@ export default function App() {
     if (data.competitorPrices) setCompetitorPrices(data.competitorPrices);
     if (data.electronicInvoices) setElectronicInvoices(data.electronicInvoices);
     if (data.resopharmaBordereaux) setResopharmaBordereaux(data.resopharmaBordereaux);
+    if (data.employees) setEmployees(data.employees);
+    if (data.shifts) setShifts(data.shifts);
+    if (data.leaveRequests) setLeaveRequests(data.leaveRequests);
+    if (data.overtimeLogs) setOvertimeLogs(data.overtimeLogs);
+    if (data.trainingPlans) setTrainingPlans(data.trainingPlans);
     const realMode = data.isRealMode ?? data.isRealModeActive;
     if (realMode !== undefined) setIsRealModeActive(realMode);
     confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-    showToast("Sauvegarde intégrale restaurée avec succès !");
+    showToast("Sauvegarde intégrale restaurée avec succès (y compris RH et plannings) !");
   };
+
 
   const handleUpdatePharmacyProfile = (updatedProfile: PharmacyProfile) => {
     setPharmacyProfile(updatedProfile);
@@ -1587,6 +1864,41 @@ export default function App() {
     showToast(`Seuils de sécurité mis à jour pour ${targetProduct?.name || 'le produit'}.`);
   };
 
+  // Bulk adjust stock thresholds handler (from Simulation Engine)
+  const handleBulkAdjustStockThresholds = (adjustments: BulkThresholdAdjustmentItem[]) => {
+    if (adjustments.length === 0) return;
+
+    const adjustmentMap = new Map(adjustments.map(a => [a.productId, a]));
+
+    setProducts(prev => prev.map(p => {
+      if (adjustmentMap.has(p.id)) {
+        const adj = adjustmentMap.get(p.id)!;
+        return {
+          ...p,
+          minThreshold: adj.newMin,
+          maxThreshold: adj.newMax,
+          status: p.stockQty <= adj.newMin ? 'low_stock' : 'optimal'
+        };
+      }
+      return p;
+    }));
+
+    logUserAction({
+      domain: 'stocks',
+      actionType: 'ajustement_quantite',
+      severity: 'info',
+      details: `Application du plan d'optimisation prédictif des seuils Min/Max sur ${adjustments.length} références d'officine.`,
+      targetEntity: `${adjustments.length} produits`,
+      previousValue: 'Seuils historiques non calibrés',
+      newValue: 'Seuils prédictifs optimisés selon la vélocité des ventes',
+      financialImpact: 0,
+      reason: 'Simulation et recalibrage automatique Min/Max'
+    });
+
+    confetti({ particleCount: 60, spread: 80, origin: { y: 0.6 } });
+    showToast(`Plan d'optimisation appliqué : ${adjustments.length} références mises à jour.`);
+  };
+
   // Transaction handlers
   const handleAddNewTransaction = (newTxData: Omit<BankTransaction, 'id'>) => {
     const newTx: BankTransaction = {
@@ -2080,7 +2392,7 @@ export default function App() {
   const connectorsDownCount = connectorsHealth.filter(c => c.status === 'down').length;
   const priceHikesCount = priceVariations.filter(v => v.deltaAmountHt > 0 && v.status === 'non_traite').length;
   const discountsAnomaliesCount = discountContracts.reduce((acc, c) => acc + c.discrepancies.filter(d => d.status === 'a_reclamer').length, 0);
-  const marginAlertsCount = 1;
+  const marginAlertsCount = categoryMargins.filter(c => c.isAlertTriggered).length;
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white transition-colors duration-200">
@@ -2105,6 +2417,7 @@ export default function App() {
         onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
         onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
         onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
+        onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
         pharmacyProfile={pharmacyProfile}
         isRealModeActive={isRealModeActive}
         onSyncBank={handleSyncBank}
@@ -2138,25 +2451,43 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <DashboardOverview
             summary={summary}
-            todayStats={MOCK_DAILY_STATS[0]}
+            todayStats={todayStats}
             notifications={notifications}
             nearExpiryProducts={criticalExpiries}
             overdueOrders={overdueOrders}
+            products={products}
             lcrStatements={lcrStatements}
             resopharmaBordereaux={resopharmaBordereaux}
             expenses={expenses}
             orders={orders}
+            categoryMargins={categoryMargins}
+            priceVariations={priceVariations}
+            discountContracts={discountContracts}
+            monthlyReports={monthlyReports}
+            isRealModeActive={isRealModeActive}
             onNavigateTab={setActiveTab}
             onSyncBank={handleSyncBank}
             isSyncingBank={isSyncingBank}
             onOpenAccountingModal={() => setActiveTab('rapports')}
+            onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
+            onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
+            onOpenElectronicInvoicing={() => setIsElectronicInvoicingModalOpen(true)}
+            onOpenResopharma={() => setIsResopharmaModalOpen(true)}
+            onResetToDemo={handleResetToDemoData}
           />
         )}
 
         {activeTab === 'surveillance_marges' && (
           <RealtimeMarginWatchdogView
+            categories={categoryMargins}
+            onUpdateCategories={setCategoryMargins}
+            therapeuticClasses={therapeuticClasses}
+            productMargins={productMargins}
+            isRealModeActive={isRealModeActive}
             onNavigateTab={setActiveTab}
             onTriggerPushNotification={handleTriggerPushNotification}
+            onResetToDemo={handleResetToDemoData}
+            onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
           />
         )}
 
@@ -2241,8 +2572,27 @@ export default function App() {
             onImportBulkProducts={handleImportBulkProducts}
             onCreateSupplierOrder={handleCreatePredictiveSupplierOrder}
             onAdjustStockThresholds={handleAdjustStockThresholds}
+            onBulkAdjustStockThresholds={handleBulkAdjustStockThresholds}
           />
         )}
+
+        {activeTab === 'rh' && (
+          <HumanResourcesManagementView
+            employees={employees}
+            shifts={shifts}
+            leaveRequests={leaveRequests}
+            overtimeLogs={overtimeLogs}
+            trainingPlans={trainingPlans}
+            onUpdateEmployees={setEmployees}
+            onUpdateShifts={setShifts}
+            onUpdateLeaveRequests={setLeaveRequests}
+            onUpdateOvertimeLogs={setOvertimeLogs}
+            onUpdateTrainingPlans={setTrainingPlans}
+            onNavigateTab={setActiveTab}
+            onResetToDemo={handleResetToDemoData}
+          />
+        )}
+
 
         {activeTab === 'tresorerie' && (
           <TreasuryBankReconciliationView
@@ -2339,6 +2689,7 @@ export default function App() {
         onOpenElectronicInvoicingModal={() => setIsElectronicInvoicingModalOpen(true)}
         onOpenResopharmaModal={() => setIsResopharmaModalOpen(true)}
         onOpenDataManagementModal={() => setIsDataManagementModalOpen(true)}
+        onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
         unreadCount={unreadNotifications.length}
         isDarkMode={isDarkMode}
         onToggleDarkMode={handleToggleDarkMode}
@@ -2397,6 +2748,7 @@ export default function App() {
         onImportBulkTransactions={handleImportBulkTransactions}
         onImportBulkOrders={handleImportBulkOrders}
         onImportBulkExpenses={handleImportBulkExpenses}
+        onOpenOnboardingTour={() => setIsOnboardingTourOpen(true)}
         summary={summary}
         products={products}
         orders={orders}
@@ -2404,6 +2756,19 @@ export default function App() {
         bankTransactions={bankTransactions}
         lcrStatements={lcrStatements}
         competitorPrices={competitorPrices}
+      />
+
+      {/* Onboarding & First Setup Tour Modal */}
+      <OnboardingTourModal
+        isOpen={isOnboardingTourOpen}
+        onClose={() => setIsOnboardingTourOpen(false)}
+        pharmacyProfile={pharmacyProfile}
+        onOpenDataManagement={() => setIsDataManagementModalOpen(true)}
+        onOpenElectronicInvoicing={() => setIsElectronicInvoicingModalOpen(true)}
+        onOpenResopharma={() => setIsResopharmaModalOpen(true)}
+        onNavigateTab={setActiveTab}
+        onResetToDemo={handleResetToDemoData}
+        isRealModeActive={isRealModeActive}
       />
 
 

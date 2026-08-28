@@ -45,9 +45,13 @@ import { LcrStatement } from '../types/lcr';
 import { ResopharmaBordereau } from '../types/resopharma';
 import { CategoryMarginStatus } from '../types/marginWatchdog';
 import { PurchasePriceVariation, SupplierRfaContract } from '../types/purchasingAndDiscounts';
+import { MonthlyAccountingReport } from '../types/pharmacy';
 import { formatCurrency, formatPercent } from '../utils/formatters';
 import { CashFlowForecast30Days } from './CashFlowForecast30Days';
 import { MarginGaugeCard } from './MarginGaugeCard';
+import { OnboardingDashboardBanner } from './OnboardingDashboardBanner';
+import { RevenueLinearProjectionD3 } from './RevenueLinearProjectionD3';
+import { DashboardParetoStockCard } from './DashboardParetoStockCard';
 
 interface DashboardOverviewProps {
   summary: PharmacyFinancialSummary;
@@ -55,6 +59,7 @@ interface DashboardOverviewProps {
   notifications: PushNotificationAlert[];
   nearExpiryProducts: ProductStock[];
   overdueOrders: SupplierOrder[];
+  products?: ProductStock[];
   lcrStatements?: LcrStatement[];
   resopharmaBordereaux?: ResopharmaBordereau[];
   expenses?: ExpenseItem[];
@@ -62,11 +67,17 @@ interface DashboardOverviewProps {
   categoryMargins?: CategoryMarginStatus[];
   priceVariations?: PurchasePriceVariation[];
   discountContracts?: SupplierRfaContract[];
+  monthlyReports?: MonthlyAccountingReport[];
   isRealModeActive?: boolean;
   onNavigateTab: (tab: string) => void;
   onSyncBank: () => void;
   isSyncingBank: boolean;
   onOpenAccountingModal: () => void;
+  onOpenOnboardingTour?: () => void;
+  onOpenDataManagement?: () => void;
+  onOpenElectronicInvoicing?: () => void;
+  onOpenResopharma?: () => void;
+  onResetToDemo?: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
@@ -75,6 +86,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   notifications,
   nearExpiryProducts,
   overdueOrders,
+  products = [],
   lcrStatements = [],
   resopharmaBordereaux = [],
   expenses = [],
@@ -82,11 +94,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   categoryMargins = [],
   priceVariations = [],
   discountContracts = [],
+  monthlyReports = [],
   isRealModeActive = false,
   onNavigateTab,
   onSyncBank,
   isSyncingBank,
-  onOpenAccountingModal
+  onOpenAccountingModal,
+  onOpenOnboardingTour,
+  onOpenDataManagement,
+  onOpenElectronicInvoicing,
+  onOpenResopharma,
+  onResetToDemo
 }) => {
   // TVA colors
   const TVA_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
@@ -152,6 +170,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Onboarding & Initial Setup Guidance Banner */}
+      {onOpenOnboardingTour && onOpenDataManagement && onOpenElectronicInvoicing && onOpenResopharma && (
+        <OnboardingDashboardBanner
+          onOpenTour={onOpenOnboardingTour}
+          onOpenDataManagement={onOpenDataManagement}
+          onOpenElectronicInvoicing={onOpenElectronicInvoicing}
+          onOpenResopharma={onOpenResopharma}
+          onNavigateTab={onNavigateTab}
+          onResetToDemo={onResetToDemo}
+          isRealModeActive={isRealModeActive}
+        />
+      )}
 
       {/* Critical Alert Bar if active alerts, overdue orders or near-expiries exist */}
       {(notifications.length > 0 || overdueOrders.length > 0 || nearExpiryProducts.length > 0 || summary.activeBudgetAlertsCount > 0) && (
@@ -346,6 +377,18 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         resopharmaBordereaux={resopharmaBordereaux}
         expenses={expenses}
         orders={orders}
+        onNavigateTab={onNavigateTab}
+      />
+
+      {/* D3.js Linear Revenue Projection based on 6-Month Sales History */}
+      <RevenueLinearProjectionD3
+        monthlyReports={monthlyReports}
+        onNavigateTab={onNavigateTab}
+      />
+
+      {/* Circular Pareto Analysis (20/80 Stock Value Breakdown Classes A, B, C) */}
+      <DashboardParetoStockCard
+        products={products}
         onNavigateTab={onNavigateTab}
       />
 
@@ -633,72 +676,103 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Lower Section: Fast Action shortcuts for Pharmacien Titulaire */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Shortcut 1: Veille Prix 50km */}
+        {/* Shortcut 1: RH & Planning Équipe */}
         <div 
-          onClick={() => onNavigateTab('prix')}
-          className="cursor-pointer group bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-md hover:shadow-lg transition border border-indigo-700/50"
+          onClick={() => onNavigateTab('rh')}
+          className="cursor-pointer group bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl shadow-md hover:shadow-lg transition border border-indigo-700/50 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              Veille Concurrentielle
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-indigo-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Ressources Humaines
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-indigo-300 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-bold text-white mb-1">
+              Planning & Conformité CSP
+            </h2>
+            <p className="text-xs text-indigo-200/80 mb-3">
+              7 salariés (6.2 ETP). Présence pharmacien 100% couverte, 2 congés à valider et suivi des formations DPC.
+            </p>
           </div>
-          <h2 className="text-base font-bold text-white mb-1">
-            Ajustement Prix 50 km
-          </h2>
-          <p className="text-xs text-indigo-200/80 mb-3">
-            5 officines concurrentes scannées. 3 opportunités d'optimisation de marge et de compétitivité détectées.
-          </p>
-          <div className="inline-flex items-center text-xs font-semibold text-white bg-indigo-600/80 hover:bg-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-400/30">
-            Lancer le Radar Concurrentiel →
+          <div className="inline-flex items-center text-xs font-semibold text-white bg-indigo-600/90 hover:bg-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-400/30 self-start">
+            Gérer le Personnel & Planning →
           </div>
         </div>
 
-        {/* Shortcut 2: Suivi Dépenses Récurrentes */}
+        {/* Shortcut 2: Veille Prix 50km */}
+        <div 
+          onClick={() => onNavigateTab('prix')}
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-slate-200 dark:border-slate-800 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Veille Concurrentielle
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              Ajustement Prix 50 km
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+              5 officines concurrentes scannées. 3 opportunités d'optimisation de marge détectées.
+            </p>
+          </div>
+          <div className="inline-flex items-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg self-start">
+            Lancer le Radar Prix →
+          </div>
+        </div>
+
+        {/* Shortcut 3: Suivi Dépenses Récurrentes */}
         <div 
           onClick={() => onNavigateTab('depenses')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-slate-200 dark:border-slate-800"
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-slate-200 dark:border-slate-800 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Contrôle Budgétaire
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Contrôle Budgétaire
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              Dépenses Récurrentes
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Suivi temps réel du loyer, des salaires, du leasing robot Rowa et de la maintenance LGO WinPharma.
+            </p>
           </div>
-          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-            Dépenses Récurrentes
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            Suivi temps réel du loyer, des salaires, du leasing robot Rowa et de la maintenance LGO WinPharma.
-          </p>
-          <div className="inline-flex items-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg">
+          <div className="inline-flex items-center text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg self-start">
             Consulter le Budget →
           </div>
         </div>
 
-        {/* Shortcut 3: Rapprochement Crédit Agricole */}
+        {/* Shortcut 4: Rapprochement Crédit Agricole */}
         <div 
           onClick={() => onNavigateTab('tresorerie')}
-          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/20"
+          className="cursor-pointer group bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-xs hover:shadow-md transition border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/20 dark:bg-emerald-950/20 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-              <Landmark className="w-3.5 h-3.5" />
-              Open Banking CA
-            </span>
-            <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                <Landmark className="w-3.5 h-3.5" />
+                Open Banking CA
+              </span>
+              <ArrowUpRight className="w-4 h-4 text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              Rapprochement Bancaire
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
+              Lettrage automatique des flux de télétransmission CPAM et prélèvements grossistes OCP / Alliance.
+            </p>
           </div>
-          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-            Rapprochement Bancaire
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
-            Lettrage automatique des flux de télétransmission CPAM et prélèvements grossistes OCP / Alliance.
-          </p>
-          <div className="inline-flex items-center text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-lg border border-emerald-200/50 dark:border-emerald-800/40">
+          <div className="inline-flex items-center text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-lg border border-emerald-200/50 dark:border-emerald-800/40 self-start">
             Pointer 3 Écritures →
           </div>
         </div>

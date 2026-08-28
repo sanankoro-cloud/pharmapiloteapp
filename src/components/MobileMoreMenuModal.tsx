@@ -20,7 +20,9 @@ import {
   Percent,
   Scale,
   ShieldAlert,
-  Database
+  Database,
+  Compass,
+  Users
 } from 'lucide-react';
 
 
@@ -34,6 +36,7 @@ interface MobileMoreMenuModalProps {
   onOpenElectronicInvoicingModal?: () => void;
   onOpenResopharmaModal?: () => void;
   onOpenDataManagementModal?: () => void;
+  onOpenOnboardingTour?: () => void;
   unreadCount: number;
   isDarkMode?: boolean;
   onToggleDarkMode?: () => void;
@@ -49,6 +52,7 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
   onOpenElectronicInvoicingModal,
   onOpenResopharmaModal,
   onOpenDataManagementModal,
+  onOpenOnboardingTour,
   unreadCount,
   isDarkMode = false,
   onToggleDarkMode
@@ -96,6 +100,13 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
       label: 'Contrôle LCR & Traites Fournisseurs',
       sub: 'Pointage factures, avoirs déduits & BAP',
       icon: Receipt,
+      color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
+    },
+    {
+      id: 'rh',
+      label: 'Gestion RH & Planning Équipe',
+      sub: 'Plannings, congés, conformité CSP, DPC & masse salariale',
+      icon: Users,
       color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
     },
     {
@@ -182,6 +193,28 @@ export const MobileMoreMenuModal: React.FC<MobileMoreMenuModalProps> = ({
         {/* Action List */}
         <div className="space-y-2 mt-2">
           
+          {/* Onboarding Tour / Guide button */}
+          {onOpenOnboardingTour && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenOnboardingTour();
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-left transition shadow-xs cursor-pointer"
+            >
+              <div className="p-2.5 rounded-xl bg-emerald-600 text-white shadow-xs">
+                <Compass className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                  <span>Guide Démarrage & Configuration Initiale</span>
+                  <span className="px-1.5 py-0.2 rounded bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 text-[9px] font-bold">GUIDE</span>
+                </div>
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400">Tour pas-à-pas pour injecter vos données après réinitialisation</div>
+              </div>
+            </button>
+          )}
+
           {/* Data & Profile Management button */}
           {onOpenDataManagementModal && (
             <button

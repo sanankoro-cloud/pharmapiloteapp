@@ -835,9 +835,37 @@ export const ProductMarginTherapeuticDashboard: React.FC<ProductMarginTherapeuti
                   {filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="py-12 text-center text-slate-400">
-                        <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <div className="font-bold">Aucune référence ne correspond aux critères sélectionnés.</div>
-                        <div className="text-[11px] mt-1">Essayez d'élargir votre recherche ou de réinitialiser les filtres.</div>
+                        <Info className="w-8 h-8 mx-auto mb-2 opacity-50 text-indigo-500" />
+                        <div className="font-bold text-slate-700 dark:text-slate-200">
+                          {productsList.length === 0 
+                            ? 'Aucune référence de marge par produit enregistrée (Mode Réel / Base Vierge).'
+                            : 'Aucune référence ne correspond aux critères sélectionnés.'}
+                        </div>
+                        <div className="text-[11px] mt-1 max-w-md mx-auto text-slate-500 dark:text-slate-400">
+                          {productsList.length === 0 
+                            ? 'Les données de démonstration ont été réinitialisées. Vous pouvez importer vos données réelles LGO ou recharger le jeu de démonstration à tout moment.'
+                            : 'Essayez d\'élargir votre recherche ou de réinitialiser les filtres.'}
+                        </div>
+                        {productsList.length === 0 && (
+                          <div className="flex items-center justify-center gap-3 mt-4">
+                            {onResetToDemo && (
+                              <button
+                                onClick={onResetToDemo}
+                                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition"
+                              >
+                                Recharger les données de démo
+                              </button>
+                            )}
+                            {onOpenDataManagement && (
+                              <button
+                                onClick={onOpenDataManagement}
+                                className="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
+                              >
+                                Gestion des Données & Import
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ) : (

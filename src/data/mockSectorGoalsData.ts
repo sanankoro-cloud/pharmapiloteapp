@@ -498,3 +498,76 @@ export const getSectorGoalsGlobalSummary = (
     monthlyData
   };
 };
+
+export const BLANK_SECTOR_MONTHLY_DATA: SectorMonthlyBreakdown[] = [
+  'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+].map((m, idx) => ({
+  month: m,
+  fullMonth: m,
+  monthIndex: idx + 1,
+  quarter: idx < 3 ? 'T1' : idx < 6 ? 'T2' : idx < 9 ? 'T3' : 'T4',
+  medicamentsRealiseHt: 0,
+  medicamentsObjectifHt: 0,
+  medicamentsMargeHt: 0,
+  parapharmacieRealiseHt: 0,
+  parapharmacieObjectifHt: 0,
+  parapharmacieMargeHt: 0,
+  conseilsRealiseHt: 0,
+  conseilsObjectifHt: 0,
+  conseilsMargeHt: 0,
+  totalRealiseHt: 0,
+  totalObjectifHt: 0,
+  isProjected: idx >= 8
+}));
+
+export const BLANK_SECTOR_GOALS: Record<'medicaments' | 'parapharmacie' | 'conseils', SectorAnnualGoal> = {
+  medicaments: {
+    ...INITIAL_SECTOR_GOALS.medicaments,
+    annualGoalBudgetHt: 0,
+    ytdGoalBudgetHt: 0,
+    ytdRealisedHt: 0,
+    achievementRatePct: 0,
+    varianceAmountHt: 0,
+    variancePct: 0,
+    averageMarginRatePct: 0,
+    ytdMarginRealisedHt: 0,
+    actualMixSharePct: 0,
+    targetMixSharePct: 0,
+    yearEndProjectedLandingHt: 0,
+    projectedLandingVarianceHt: 0,
+    subCategories: []
+  },
+  parapharmacie: {
+    ...INITIAL_SECTOR_GOALS.parapharmacie,
+    annualGoalBudgetHt: 0,
+    ytdGoalBudgetHt: 0,
+    ytdRealisedHt: 0,
+    achievementRatePct: 0,
+    varianceAmountHt: 0,
+    variancePct: 0,
+    averageMarginRatePct: 0,
+    ytdMarginRealisedHt: 0,
+    actualMixSharePct: 0,
+    targetMixSharePct: 0,
+    yearEndProjectedLandingHt: 0,
+    projectedLandingVarianceHt: 0,
+    subCategories: []
+  },
+  conseils: {
+    ...INITIAL_SECTOR_GOALS.conseils,
+    annualGoalBudgetHt: 0,
+    ytdGoalBudgetHt: 0,
+    ytdRealisedHt: 0,
+    achievementRatePct: 0,
+    varianceAmountHt: 0,
+    variancePct: 0,
+    averageMarginRatePct: 0,
+    ytdMarginRealisedHt: 0,
+    actualMixSharePct: 0,
+    targetMixSharePct: 0,
+    yearEndProjectedLandingHt: 0,
+    projectedLandingVarianceHt: 0,
+    subCategories: []
+  }
+};
+

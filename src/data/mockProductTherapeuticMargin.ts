@@ -4,6 +4,9 @@ import {
   TherapeuticGlobalStats 
 } from '../types/productTherapeuticMargin';
 
+export const BLANK_THERAPEUTIC_CLASSES: TherapeuticClassSummary[] = [];
+export const BLANK_PRODUCT_MARGIN_DETAILS: ProductMarginDetail[] = [];
+
 export const MOCK_THERAPEUTIC_CLASSES: TherapeuticClassSummary[] = [
   {
     id: 'micronutrition_phytotherapie',

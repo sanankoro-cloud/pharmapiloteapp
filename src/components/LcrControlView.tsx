@@ -29,7 +29,8 @@ import {
   Send,
   X,
   Wand2,
-  Sliders
+  Sliders,
+  Lock
 } from 'lucide-react';
 import { 
   LcrStatement, 
@@ -98,12 +99,48 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
   const [selectedStatementForBap, setSelectedStatementForBap] = useState<LcrStatement | null>(null);
   const [pharmacistName, setPharmacistName] = useState('Dr. Sophie Laurent (Titulaire)');
   const [bapNote, setBapNote] = useState('');
+  const [bapValidationError, setBapValidationError] = useState<string | null>(null);
 
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [selectedStatementForDispute, setSelectedStatementForDispute] = useState<LcrStatement | null>(null);
   const [disputeReasonText, setDisputeReasonText] = useState('');
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // Derive latest statement data for active BAP modal
+  const activeBapStatement = useMemo(() => {
+    if (!selectedStatementForBap) return null;
+    return statements.find(s => s.id === selectedStatementForBap.id) || selectedStatementForBap;
+  }, [statements, selectedStatementForBap]);
+
+  // Derived metrics for BAP modal to enforce strict 100% rule
+  const bapMetrics = useMemo(() => {
+    if (!activeBapStatement) return null;
+    const totalInvoices = activeBapStatement.invoices.length;
+    const verifiedInvoices = activeBapStatement.invoices.filter(i => i.verified).length;
+    const unverifiedInvoices = totalInvoices - verifiedInvoices;
+    const discrepancy = activeBapStatement.discrepancyAmount;
+    const unappliedCredits = activeBapStatement.creditNotes.filter(c => !c.appliedOnLcr).length;
+    
+    // Calculate live score
+    const invoiceVerifiedRatio = totalInvoices > 0 ? (verifiedInvoices / totalInvoices) : 1;
+    let computedScore = Math.round(invoiceVerifiedRatio * 100);
+    if (discrepancy > 0 || unappliedCredits > 0) {
+      computedScore = Math.min(computedScore, activeBapStatement.reconciliationScore || 85, 95);
+    }
+
+    const isEligibleForBap = computedScore >= 100 && unverifiedInvoices === 0 && discrepancy === 0 && unappliedCredits === 0;
+
+    return {
+      totalInvoices,
+      verifiedInvoices,
+      unverifiedInvoices,
+      discrepancy,
+      unappliedCredits,
+      score: computedScore,
+      isEligibleForBap
+    };
+  }, [activeBapStatement]);
 
   // Calculations
   const activeStatements = statements.filter(s => s.status !== 'regle_debit');
@@ -188,16 +225,43 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
 
   const handleOpenBapModal = (statement: LcrStatement) => {
     setSelectedStatementForBap(statement);
+    setBapValidationError(null);
     setBapNote(`BAP certifié après contrôle des ${statement.invoices.length} factures et réceptions réelles.`);
     setIsBapModalOpen(true);
   };
 
-  const handleConfirmBap = () => {
-    if (selectedStatementForBap) {
-      onValidateBap(selectedStatementForBap.id, pharmacistName, bapNote);
-      setIsBapModalOpen(false);
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+  const handleQuickVerifyAllInvoices = () => {
+    if (!activeBapStatement) return;
+    activeBapStatement.invoices.forEach(inv => {
+      if (!inv.verified) {
+        onToggleInvoiceVerification(activeBapStatement.id, inv.id);
+      }
+    });
+    setBapValidationError(null);
+  };
+
+  const handleConfirmBap = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!activeBapStatement || !bapMetrics) return;
+
+    // Strict validation: Reconciliation score must be at least 100% and fully reconciled
+    if (!bapMetrics.isEligibleForBap || bapMetrics.score < 100) {
+      setBapValidationError(
+        `Validation impossible : Le score de rapprochement actuel est de ${bapMetrics.score}% (inférieur au seuil obligatoire de 100%). Veuillez pointer l'intégralité des factures et résoudre tout litige avant de valider le BAP.`
+      );
+      return;
     }
+
+    if (!pharmacistName.trim()) {
+      setBapValidationError("Veuillez indiquer le nom et la qualité du pharmacien titulaire signataire.");
+      return;
+    }
+
+    onValidateBap(activeBapStatement.id, pharmacistName.trim(), bapNote);
+    setIsBapModalOpen(false);
+    setBapValidationError(null);
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
   };
 
   const handleOpenDisputeModal = (statement: LcrStatement) => {
@@ -600,6 +664,18 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
                         <StatusIcon className="w-3 h-3" />
                         <span>{statusBadge.label}</span>
                       </span>
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg border ${
+                        statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-amber-50 text-amber-800 border-amber-300'
+                      }`}>
+                        {statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0 ? (
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        )}
+                        <span>Score : {statement.reconciliationScore}%</span>
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-1.5">
@@ -636,10 +712,28 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
                     {statement.status === 'a_controler' && (
                       <button
                         onClick={() => handleOpenBapModal(statement)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition ${
+                          statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 cursor-pointer'
+                        }`}
+                        title={
+                          statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0
+                            ? 'Score 100% : Prêt pour validation Bon à Payer'
+                            : `Score ${statement.reconciliationScore}% : Contrôle et pointage incomplets (100% requis)`
+                        }
                       >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Valider BAP</span>
+                        {statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0 ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Valider BAP (100%)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>BAP ({statement.reconciliationScore}%)</span>
+                          </>
+                        )}
                       </button>
                     )}
 
@@ -712,9 +806,10 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
                         </button>
                         <button
                           onClick={() => handleOpenBapModal(statement)}
-                          className="px-3 py-1 rounded-lg bg-white border border-rose-300 text-rose-800 text-xs font-semibold hover:bg-rose-50 transition"
+                          className="px-3 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition flex items-center gap-1"
                         >
-                          Forcer BAP sous réserve
+                          <Lock className="w-3 h-3 text-slate-500" />
+                          <span>Contrôle BAP (Bloqué : Litige actif)</span>
                         </button>
                       </div>
                     </div>
@@ -897,10 +992,23 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenBapModal(statement)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition cursor-pointer ${
+                          statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                        }`}
                       >
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Signer Bon à Payer (BAP)</span>
+                        {statement.reconciliationScore >= 100 && verifiedInvoicesCount === statement.invoices.length && statement.discrepancyAmount === 0 ? (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Signer Bon à Payer (BAP)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Signer BAP (Score {statement.reconciliationScore}%)</span>
+                          </>
+                        )}
                       </button>
 
                       <button
@@ -919,61 +1027,173 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
         })}
       </div>
 
-      {/* Modal: Validate Bon à Payer (BAP) */}
-      {isBapModalOpen && selectedStatementForBap && (
+      {/* Modal: Validate Bon à Payer (BAP) with Strict 100% Reconciliation Enforcement */}
+      {isBapModalOpen && activeBapStatement && bapMetrics && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
-                  <ShieldCheck className="w-5 h-5" />
+                <div className={`p-2 rounded-xl ${bapMetrics.isEligibleForBap ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {bapMetrics.isEligibleForBap ? <ShieldCheck className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900">
                     Validation du Bon à Payer (BAP)
                   </h3>
-                  <p className="text-xs text-slate-500">{selectedStatementForBap.supplierName}</p>
+                  <p className="text-xs text-slate-500">{activeBapStatement.supplierName}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsBapModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400"
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-200 text-xs">
+            {/* Reconciliation Score & Validation Guard Banner */}
+            <div className={`rounded-2xl p-4 border transition-all ${
+              bapMetrics.isEligibleForBap 
+                ? 'bg-emerald-50/90 border-emerald-300' 
+                : 'bg-rose-50/90 border-rose-300'
+            }`}>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  {bapMetrics.isEligibleForBap ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  )}
+                  <span>Score de Rapprochement :</span>
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-black border ${
+                  bapMetrics.isEligibleForBap 
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+                    : 'bg-rose-100 text-rose-800 border-rose-300'
+                }`}>
+                  {bapMetrics.score}% / 100% requis
+                </span>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden mb-3">
+                <div 
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    bapMetrics.isEligibleForBap ? 'bg-emerald-500' : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(5, bapMetrics.score))}%` }}
+                />
+              </div>
+
+              {bapMetrics.isEligibleForBap ? (
+                <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+                  ✓ Contrôle complet validé : <strong>{bapMetrics.totalInvoices} factures</strong> pointées conformes et aucun écart financier constaté. L'autorisation de paiement peut être signée en toute sécurité.
+                </p>
+              ) : (
+                <div className="space-y-2 text-xs">
+                  <div className="text-rose-900 font-bold text-[11px] flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Signature BAP bloquée (Règle de contrôle interne stricte) :</span>
+                  </div>
+                  <ul className="text-[11px] text-rose-800 space-y-1 pl-4 list-disc">
+                    {bapMetrics.unverifiedInvoices > 0 && (
+                      <li>
+                        <strong>{bapMetrics.unverifiedInvoices} facture(s)</strong> non pointée(s) sur {bapMetrics.totalInvoices}.
+                      </li>
+                    )}
+                    {bapMetrics.discrepancy > 0 && (
+                      <li>
+                        Écart financier résiduel de <strong>+{formatCurrency(bapMetrics.discrepancy)}</strong> sur le relevé.
+                      </li>
+                    )}
+                    {bapMetrics.unappliedCredits > 0 && (
+                      <li>
+                        <strong>{bapMetrics.unappliedCredits} avoir(s)</strong> non imputé(s) par le fournisseur.
+                      </li>
+                    )}
+                  </ul>
+
+                  {/* 1-Click Action to reach 100% if discrepancy == 0 */}
+                  {bapMetrics.unverifiedInvoices > 0 && bapMetrics.discrepancy === 0 && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleQuickVerifyAllInvoices}
+                        className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Pointer toutes les factures conformes ({bapMetrics.unverifiedInvoices} restantes)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {bapMetrics.discrepancy > 0 && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsBapModalOpen(false);
+                          handleOpenDisputeModal(activeBapStatement);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Ouvrir la déclaration de litige & opposition</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Statement Details */}
+            <div className="bg-slate-50 rounded-2xl p-3.5 space-y-2 border border-slate-200 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-500">N° Relevé LCR :</span>
-                <span className="font-mono font-bold text-slate-900">{selectedStatementForBap.lcrNumber}</span>
+                <span className="font-mono font-bold text-slate-900">{activeBapStatement.lcrNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Date d'échéance :</span>
-                <span className="font-bold text-slate-900">{formatDate(selectedStatementForBap.dueDate)}</span>
+                <span className="font-bold text-slate-900">{formatDate(activeBapStatement.dueDate)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Montant net certifié BAP :</span>
-                <span className="font-mono font-black text-emerald-700 text-sm">
-                  {formatCurrency(selectedStatementForBap.totalAmountDrawn)}
+                <span className="font-mono font-black text-slate-900 text-sm">
+                  {formatCurrency(activeBapStatement.totalAmountDrawn)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Nombre de factures vérifiées :</span>
-                <span className="font-semibold text-slate-800">{selectedStatementForBap.invoices.length} factures</span>
+                <span className="text-slate-500">Factures pointées :</span>
+                <span className="font-semibold text-slate-800">
+                  {bapMetrics.verifiedInvoices} / {bapMetrics.totalInvoices} vérifiées
+                </span>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
+            {/* Validation Error Alert */}
+            {bapValidationError && (
+              <div className="p-3 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 text-xs flex items-start gap-2 animate-shake">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span>{bapValidationError}</span>
+              </div>
+            )}
+
+            {/* Form Fields */}
+            <form onSubmit={handleConfirmBap} className="space-y-3 text-xs">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Pharmacien Titulaire Signataire :
+                  Pharmacien Titulaire Signataire <span className="text-rose-500">*</span> :
                 </label>
                 <input
                   type="text"
+                  required
                   value={pharmacistName}
-                  onChange={e => setPharmacistName(e.target.value)}
+                  onChange={e => {
+                    setPharmacistName(e.target.value);
+                    if (bapValidationError) setBapValidationError(null);
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500/30"
+                  placeholder="Dr. ..."
                 />
               </div>
 
@@ -989,23 +1209,43 @@ export const LcrControlView: React.FC<LcrControlViewProps> = ({
                   placeholder="Factures pointées avec les réceptions effectives..."
                 />
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                onClick={() => setIsBapModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleConfirmBap}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition flex items-center gap-1.5"
-              >
-                <Check className="w-4 h-4" />
-                <span>Apposer Bon à Payer Électronique</span>
-              </button>
-            </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsBapModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={!bapMetrics.isEligibleForBap}
+                  title={
+                    !bapMetrics.isEligibleForBap 
+                      ? `Score de rapprochement à ${bapMetrics.score}% : 100% requis pour valider le BAP` 
+                      : "Valider le Bon à Payer"
+                  }
+                  className={`px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5 ${
+                    bapMetrics.isEligibleForBap
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70 border border-slate-300'
+                  }`}
+                >
+                  {bapMetrics.isEligibleForBap ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Apposer Bon à Payer Électronique</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      <span>BAP Bloqué (Score {bapMetrics.score}%)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

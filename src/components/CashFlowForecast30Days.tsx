@@ -103,6 +103,15 @@ export const CashFlowForecast30Days: React.FC<CashFlowForecast30DaysProps> = ({
   // Reference date: 2026-08-23
   const baseDate = useMemo(() => new Date('2026-08-23T08:00:00'), []);
 
+  // Check if we are in a blank / zero state
+  const isBlankState = useMemo(() => {
+    return currentBankBalance === 0 && 
+      lcrStatements.length === 0 && 
+      resopharmaBordereaux.length === 0 && 
+      expenses.length === 0 && 
+      orders.length === 0;
+  }, [currentBankBalance, lcrStatements.length, resopharmaBordereaux.length, expenses.length, orders.length]);
+
   // Generate 30 days forecast data
   const fullForecastData: DailyForecastPoint[] = useMemo(() => {
     const data: DailyForecastPoint[] = [];
@@ -124,11 +133,36 @@ export const CashFlowForecast30Days: React.FC<CashFlowForecast30DaysProps> = ({
       const fullDateLabel = pointDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       const dayOfWeek = pointDate.toLocaleDateString('fr-FR', { weekday: 'short' });
 
+      // If in blank mode, all flows are strictly 0 unless real records are added
+      if (isBlankState) {
+        data.push({
+          dayIndex: i,
+          date: dateStr,
+          dateLabel,
+          fullDateLabel,
+          dayOfWeek,
+          isWeekend,
+          noemieCpam: 0,
+          dreMutuelles: 0,
+          counterSales: 0,
+          totalInflows: 0,
+          lcrGrossistes: 0,
+          fixedExpenses: 0,
+          suppliersDirect: 0,
+          totalOutflows: 0,
+          netFlow: 0,
+          projectedBalance: 0,
+          events: []
+        });
+        continue;
+      }
+
       // Calculate Inflows
       let noemieCpam = 0;
       let dreMutuelles = 0;
       let counterSales = 0;
       const events: DailyForecastPoint['events'] = [];
+
 
       // 1. NOEMIE Inflows
       // Check matching un-received Resopharma bordereaux

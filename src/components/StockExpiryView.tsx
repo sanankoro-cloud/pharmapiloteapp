@@ -24,12 +24,14 @@ import {
   ShieldAlert,
   Zap
 } from 'lucide-react';
-import { ProductStock } from '../types/pharmacy';
+import { ProductStock, BulkThresholdAdjustmentItem } from '../types/pharmacy';
 import { formatCurrency, formatDate, exportToCsv } from '../utils/formatters';
 import { StockStatisticsDashboard } from './StockStatisticsDashboard';
 import { AdvancedStockSearchView } from './AdvancedStockSearchView';
 import { StockPredictiveAlertsView } from './StockPredictiveAlertsView';
+import { StockThresholdSimulatorView } from './StockThresholdSimulatorView';
 import { computeStockoutPredictions } from '../utils/stockPredictiveEngine';
+import { simulateStockThresholds, SCENARIO_PRESETS } from '../utils/stockOptimizationSimulatorEngine';
 
 interface StockExpiryViewProps {
   products: ProductStock[];
@@ -41,9 +43,10 @@ interface StockExpiryViewProps {
   onImportBulkProducts?: (products: ProductStock[]) => void;
   onCreateSupplierOrder?: (orderItems: Array<{ product: ProductStock; quantity: number }>, supplierName: string) => void;
   onAdjustStockThresholds?: (productId: string, newMin: number, newMax: number) => void;
+  onBulkAdjustStockThresholds?: (adjustments: BulkThresholdAdjustmentItem[]) => void;
 }
 
-type StockSubTab = 'predictive' | 'analytics' | 'search' | 'inventory';
+type StockSubTab = 'predictive' | 'simulation' | 'analytics' | 'search' | 'inventory';
 
 export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   products,
@@ -54,7 +57,8 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   onAdjustStockQty,
   onImportBulkProducts,
   onCreateSupplierOrder,
-  onAdjustStockThresholds
+  onAdjustStockThresholds,
+  onBulkAdjustStockThresholds
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<StockSubTab>('predictive');
   const [searchPreset, setSearchPreset] = useState<string | null>(null);
@@ -62,6 +66,11 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
   // Pre-calculate count of predictive alerts for badge
   const { summary: predictiveSummary } = React.useMemo(() => {
     return computeStockoutPredictions(products);
+  }, [products]);
+
+  // Pre-calculate simulation optimization summary for badge
+  const { summary: simulationSummary } = React.useMemo(() => {
+    return simulateStockThresholds(products, SCENARIO_PRESETS.equilibre.params);
   }, [products]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -337,6 +346,25 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveSubTab('simulation')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            activeSubTab === 'simulation'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/30'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+          }`}
+        >
+          <Sparkles className={`w-4 h-4 ${activeSubTab === 'simulation' ? 'text-white' : 'text-indigo-500'}`} />
+          <span>Simulation Optimisation Min / Max</span>
+          <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+            activeSubTab === 'simulation'
+              ? 'bg-white text-indigo-700'
+              : 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+          }`}>
+            {simulationSummary.underProtectedCount + simulationSummary.overStockedCount + simulationSummary.rebalanceCount} préconisations
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('analytics')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer shrink-0 ${
             activeSubTab === 'analytics'
@@ -390,6 +418,19 @@ export const StockExpiryView: React.FC<StockExpiryViewProps> = ({
           products={products}
           onCreateSupplierOrder={onCreateSupplierOrder}
           onAdjustStockThresholds={onAdjustStockThresholds}
+          onNavigateToStockSearch={(term) => {
+            setSearchTerm(term);
+            setActiveSubTab('search');
+          }}
+        />
+      )}
+
+      {/* VIEW 0.5: STOCK OPTIMIZATION SIMULATOR */}
+      {activeSubTab === 'simulation' && (
+        <StockThresholdSimulatorView
+          products={products}
+          onAdjustStockThresholds={onAdjustStockThresholds}
+          onBulkAdjustStockThresholds={onBulkAdjustStockThresholds}
           onNavigateToStockSearch={(term) => {
             setSearchTerm(term);
             setActiveSubTab('search');

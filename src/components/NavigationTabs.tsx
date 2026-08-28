@@ -13,7 +13,8 @@ import {
   Activity,
   Percent,
   Scale,
-  ShieldAlert
+  ShieldAlert,
+  Users
 } from 'lucide-react';
 
 interface NavigationTabsProps {
@@ -107,6 +108,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       icon: Package,
       badge: criticalExpiriesCount > 0 ? `${criticalExpiriesCount} urgents` : null,
       badgeColor: 'bg-amber-500 text-white'
+    },
+    {
+      id: 'rh',
+      label: 'Gestion RH & Planning',
+      icon: Users,
+      badge: '7 salariés',
+      badgeColor: 'bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/40 font-bold'
     },
     {
       id: 'tresorerie',

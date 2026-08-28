@@ -336,3 +336,79 @@ export interface PharmacyProfile {
   businessSector: 'officine_pure' | 'agri_pharma' | 'polyvalent';
 }
 
+// Types pour la Simulation d'Optimisation des Seuils Min/Max
+export type SimulationScenarioId = 
+  | 'equilibre' 
+  | 'flux_tendu' 
+  | 'securisation_mitm' 
+  | 'pic_epidemique' 
+  | 'basse_saison' 
+  | 'personnalise';
+
+export interface StockOptimizationParameters {
+  scenarioId: SimulationScenarioId;
+  demandMultiplier: number; // Ex: 1.0 (normal), 1.3 (+30%), 0.85 (-15%)
+  grossisteLeadTimeDays: number; // Ex: 0.5j à 2j
+  directLabLeadTimeDays: number; // Ex: 4j à 8j
+  grossisteTargetCoverageDays: number; // Ex: 14j (rotation 2 fois par mois)
+  directLabTargetCoverageDays: number; // Ex: 30j (commande mensuelle directe)
+  safetyMarginDaysClassA: number; // Ex: 6j
+  safetyMarginDaysClassB: number; // Ex: 4j
+  safetyMarginDaysClassC: number; // Ex: 2j
+  extraSafetyDaysEssential: number; // Ex: +4j pour MITM / Urgences
+  highValueMaxCapMultiplier: number; // Ex: 1.2 (Plafond très strict pour produits > 500€)
+  minThresholdFloor: number; // Minimum absolu garanti (ex: 1 boîte)
+}
+
+export type ThresholdDiagnosticStatus = 
+  | 'under_protected' // Min actuel trop bas -> Risque de rupture
+  | 'over_stocked'    // Max ou Min actuel trop haut -> Surstock / BFR immobilisé inutilement
+  | 'optimal'         // Seuils actuels bien alignés avec la rotation réelle
+  | 'rebalance';      // Min à réhausser et Max à abaisser (resynchronisation)
+
+export interface ProductThresholdSimulationResult {
+  productId: string;
+  product: ProductStock;
+  currentStock: number;
+  currentMin: number;
+  currentMax: number;
+  simulatedMin: number;
+  simulatedMax: number;
+  deltaMin: number; // simulatedMin - currentMin
+  deltaMax: number; // simulatedMax - currentMax
+  monthlySales: number;
+  dailyVelocity: number;
+  currentDaysCoverage: number;
+  simulatedDaysCoverage: number;
+  pumpHt: number;
+  estimatedBfrImpactHt: number; // Impact financier en trésorerie (+ = besoin de trésorerie, - = trésorerie libérée)
+  annualTurnoverGainPct: number; // Estimation du gain en rotation
+  diagnosticStatus: ThresholdDiagnosticStatus;
+  diagnosticReason: string;
+  isEssential: boolean;
+  isHighValue: boolean;
+  supplierType: 'grossiste' | 'laboratoire_direct';
+  abcClass: 'A' | 'B' | 'C';
+}
+
+export interface StockOptimizationSimulationSummary {
+  totalAnalyzedSkus: number;
+  underProtectedCount: number; // Risque de rupture
+  overStockedCount: number;    // Surstock / BFR excessif
+  optimalCount: number;        // Déjà optimal
+  rebalanceCount: number;      // Rééquilibrage mixte
+  totalFreedCashHt: number;    // Trésorerie libérée par baisse des plafonds max surstockés (€ HT)
+  totalSecuringCashHt: number; // Trésorerie requise pour sécuriser les produits sous-protégés (€ HT)
+  netBfrImpactHt: number;      // Solde net de variation du BFR (€ HT)
+  estimatedTurnoverImprovement: number; // Ex: +1.8 rotations/an
+  serviceLevelCurrentPct: number;       // Ex: 94.2%
+  serviceLevelSimulatedPct: number;     // Ex: 99.1%
+  potentialExpiredLossAvoidanceHt: number; // Pertes DLUO évitées (€ HT)
+}
+
+export interface BulkThresholdAdjustmentItem {
+  productId: string;
+  newMin: number;
+  newMax: number;
+}
+

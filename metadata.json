@@ -1,6 +1,6 @@
 {
   "name": "PharmaPilot Officine",
-  "description": "Contrôle de gestion et pilotage officinal : alertes prédictives de ruptures sur produits essentiels (MITM) avec calcul ROP/vitesse de vente, analyse de stock Pareto 20/80 (ABC), recherche multi-critères, surveillance des marges en temps réel, contrôle des traites LCR, connecteurs API & RESOPHARMA et trésorerie bancaire.",
+  "description": "Contrôle de gestion et pilotage officinal : alertes de ruptures MITM, analyse Pareto ABC, gestion RH complète avec planning glissant hebdomadaire, drag & drop des shifts, alertes visuelles de conflits horaires et conformité au Code du travail officinal (IDCC 1996, CSP, plafonds 48h/10h, repos 11h), portail de congés et masse salariale.",
   "requestFramePermissions": [
     "camera"
   ],

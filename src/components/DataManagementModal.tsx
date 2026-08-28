@@ -26,7 +26,9 @@ import {
   Mail,
   ToggleLeft,
   ToggleRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Compass,
+  Play
 } from 'lucide-react';
 import { 
   ProductStock, 
@@ -62,6 +64,7 @@ interface DataManagementModalProps {
   onImportBulkExpenses: (newExpenses: ExpenseItem[]) => void;
   isRealModeActive: boolean;
   onToggleRealMode: (isReal: boolean) => void;
+  onOpenOnboardingTour?: () => void;
 }
 
 export const DataManagementModal: React.FC<DataManagementModalProps> = ({
@@ -84,7 +87,8 @@ export const DataManagementModal: React.FC<DataManagementModalProps> = ({
   onImportBulkOrders,
   onImportBulkExpenses,
   isRealModeActive,
-  onToggleRealMode
+  onToggleRealMode,
+  onOpenOnboardingTour
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'overview' | 'csv_import' | 'backup_restore' | 'blank_mode'>('overview');
   const [importType, setImportType] = useState<'stocks' | 'transactions' | 'orders' | 'expenses'>('stocks');
@@ -475,6 +479,20 @@ Assurance RCP Entreprise;310;310;Assurance Pro`
               <span className="px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 text-[10px] font-black">RESET</span>
             </span>
           </button>
+
+          {onOpenOnboardingTour && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenOnboardingTour();
+              }}
+              className="pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 border-transparent text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 whitespace-nowrap flex items-center gap-2 cursor-pointer ml-auto"
+              title="Lancer le guide pas-à-pas pour configurer vos données"
+            >
+              <Compass className="w-4 h-4 animate-pulse" />
+              <span>Guide de Démarrage (Tour)</span>
+            </button>
+          )}
         </div>
 
         {/* Modal Body */}
@@ -986,13 +1004,19 @@ Assurance RCP Entreprise;310;310;Assurance Pro`
                           setConfirmClearModal(false);
                           setImportFeedback({
                             type: 'success',
-                            message: 'L\'application est désormais en mode vierge. Vous pouvez commencer à saisir vos données réelles !'
+                            message: 'L\'application est désormais en mode vierge (zéro produit, écritures et factures fictives).'
                           });
+                          if (onOpenOnboardingTour) {
+                            setTimeout(() => {
+                              onClose();
+                              onOpenOnboardingTour();
+                            }, 400);
+                          }
                         }}
                         className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer flex items-center gap-1.5"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span>Oui, effacer tout et démarrer à Zéro</span>
+                        <span>Oui, effacer tout et lancer le Guide de configuration</span>
                       </button>
                       <button
                         onClick={() => setConfirmClearModal(false)}

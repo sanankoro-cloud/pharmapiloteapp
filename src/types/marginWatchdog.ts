@@ -79,7 +79,8 @@ export interface CategoryMarginStatus {
   anomalies: CategoryMarginAnomaly[];
   
   // Trend points for Recharts visualization
-  trendHistory: CategoryMarginTrendPoint[];
+  trendHistory?: CategoryMarginTrendPoint[];
+  trendPoints?: CategoryMarginTrendPoint[];
 }
 
 export interface LiveSalesTicket {
